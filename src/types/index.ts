@@ -1,4 +1,5 @@
 /**
+<<<<<<< HEAD
  * Types and Interfaces for PRD Application
  * All Sections Implementation
  */
@@ -501,3 +502,10 @@ export interface StreakStorage {
   notifications: StreakNotification[];
   lastUpdated: Date;
 }
+
+// ============================================
+// Section 15 & 16: Achievement & Mentor Types
+// ============================================
+
+export * from './achievementTypes';
+export * from './mentorTypes';

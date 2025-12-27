@@ -1,5 +1,4 @@
 /**
-<<<<<<< HEAD
  * Components Export
  * All Sections
  */
@@ -27,3 +26,7 @@ export { VoiceInput, default as VoiceInputDefault } from './VoiceInput';
 // Section 11 & 12 Components
 export { CommunityShowcase } from './CommunityShowcase';
 export { CollaborationHub } from './CollaborationHub';
+
+// Section 15 & 16 Components
+export { default as AchievementSystem } from './AchievementSystem';
+export { default as AIMentor } from './AIMentor';

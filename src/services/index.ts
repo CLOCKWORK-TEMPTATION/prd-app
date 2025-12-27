@@ -1,5 +1,4 @@
 /**
-<<<<<<< HEAD
  * Services Export
  * All Sections
  */
@@ -14,3 +13,7 @@ export { speechService, SpeechService } from './speechService';
 // Section 11 & 12 Services
 export { CommunityService } from './communityService';
 export { CollaborationService } from './collaborationService';
+
+// Section 15 & 16 Services
+export { default as achievementService } from './achievementService';
+export { default as mentorService } from './mentorService';
