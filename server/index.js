@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import { GoogleGenAI } from '@google/genai';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
+import logger from './logger.js';
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
@@ -77,12 +78,14 @@ function normalizeError(error, provider = 'unknown') {
 
 function ok(res, data) { return res.json({ ok: true, ...data }); }
 function err(res, code, message, provider, status, userAction) {
+  logger.error('API Error', { code, message, provider, status: status || 500, userAction });
   return res.status(status || 500).json({ ok: false, code, message, provider, status: status || 500, userAction });
 }
 
 // Start Deep Research (Gemini Interactions API)
 app.post('/api/research/start', async (req, res) => {
   const { input, fileSearchStoreNames, enableFileSearch } = req.body || {};
+  logger.info('Research started', { input: input?.slice(0, 100), enableFileSearch });
   if (!input || typeof input !== 'string') return err(res, 'BAD_REQUEST', 'input is required', null, 400, 'تأكد من إدخال نص صحيح');
 
   if (!google) {
@@ -318,8 +321,23 @@ app.post('/api/generate/prototype', async (req, res) => {
   }
 });
 
+// Health Check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: Date.now() });
+});
+
+// Legacy health endpoint
 app.get('/api/health', (req, res) => ok(res, { status: 'ok' }));
 
 app.listen(PORT, () => {
+  logger.info('Server started successfully', {
+    port: PORT,
+    environment: process.env.NODE_ENV || 'development',
+    providers: {
+      google: !!google,
+      anthropic: !!anthropic,
+      openai: !!openai
+    }
+  });
   console.log(`[server] listening on http://localhost:${PORT}`);
 });
