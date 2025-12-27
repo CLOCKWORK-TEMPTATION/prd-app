@@ -386,3 +386,10 @@ export interface TemplateAnalytics {
 
 export * from './validation.types';
 export * from './speech.types';
+
+// ============================================
+// Section 11 & 12: Community & Collaboration Types
+// ============================================
+
+export * from './community.types';
+export * from './collaboration.types';

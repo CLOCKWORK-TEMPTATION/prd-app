@@ -1,4 +1,5 @@
 /**
+<<<<<<< HEAD
  * Components Export
  * All Sections
  */
@@ -22,3 +23,7 @@ export {
 // Section 7 & 8 Components
 export { SmartValidator, default as SmartValidatorDefault } from './SmartValidator';
 export { VoiceInput, default as VoiceInputDefault } from './VoiceInput';
+
+// Section 11 & 12 Components
+export { CommunityShowcase } from './CommunityShowcase';
+export { CollaborationHub } from './CollaborationHub';
