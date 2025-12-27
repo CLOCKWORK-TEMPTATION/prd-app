@@ -18,3 +18,7 @@ export {
   ExamplesCarousel,
   ExamplesCarouselCompact
 } from './ExamplesCarousel';
+
+// Section 7 & 8 Components
+export { SmartValidator, default as SmartValidatorDefault } from './SmartValidator';
+export { VoiceInput, default as VoiceInputDefault } from './VoiceInput';

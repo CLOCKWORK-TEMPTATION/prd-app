@@ -379,3 +379,10 @@ export interface TemplateAnalytics {
   completed: boolean;
   timeSpent: number;
 }
+
+// ============================================
+// Section 7 & 8: Validation & Speech Types
+// ============================================
+
+export * from './validation.types';
+export * from './speech.types';
