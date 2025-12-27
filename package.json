@@ -1,0 +1,30 @@
+{
+  "name": "prd-app-section19",
+  "version": "1.0.0",
+  "description": "Section 19: Compare Versions Feature for PRD to Prototype Application",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "echo \"Tests would go here\"",
+    "build": "echo \"Build would go here\"",
+    "dev": "echo \"Dev server would go here\""
+  },
+  "keywords": [
+    "prd",
+    "version-comparison",
+    "diff-viewer",
+    "ab-testing",
+    "product-management"
+  ],
+  "author": "Product Team",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "lucide-react": "^0.263.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}
