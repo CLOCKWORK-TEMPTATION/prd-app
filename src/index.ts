@@ -1,14 +1,13 @@
 /**
- * Section 19: Compare Versions Feature
- * Main export file
+ * Main Export File
+ * PRD to Prototype Application - All Sections
  */
 
-// Types
-export * from './types/version';
+// Components
+export * from './components';
 
 // Services
-export * from './services/versionService';
+export * from './services';
 
-// Components
-export { default as VersionComparator } from './components/VersionComparator';
-export { default as DiffViewer } from './components/DiffViewer';
+// Types
+export * from './types';
