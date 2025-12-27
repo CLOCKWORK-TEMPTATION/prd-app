@@ -8,6 +8,7 @@ import { GoogleGenAI } from '@google/genai';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import swaggerSpec from './swagger.config.js';
+import logger from './logger.js';
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
