@@ -80,48 +80,141 @@ class Analytics {
 
 // عميل API مُحاكَى ليعمل محليًا بدون مفاتيح
 class APIClient {
-  static async research(product: string, preferences: string): Promise<string> {
+  static async research(
+    product: string,
+    preferences: string,
+    enableFileSearch: boolean = false,
+    onProgress?: (status: string) => void
+  ): Promise<{ text: string; provider: string; model: string }> {
     const key = `research_${product}_${preferences}`;
     const cached = RequestCache.get(key);
     if (cached) return cached;
+
     const input = `${product}\n\nPreferences:\n${preferences}`;
     const start = await fetch('/api/research/start', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ input })
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input, enableFileSearch })
     }).then(r => r.json());
-    if (!start.ok) throw new Error(start.message || 'Failed to start research');
+
+    if (!start.ok) throw new Error(start.userAction || start.message || 'Failed to start research');
     const id = start.interactionId;
+
+    // Try SSE streaming first, fallback to polling
+    try {
+      return await this.researchWithSSE(id, onProgress);
+    } catch (sseError) {
+      Logger.info('SSE failed, falling back to polling', sseError);
+      return await this.researchWithPolling(id, onProgress);
+    }
+  }
+
+  private static async researchWithSSE(
+    id: string,
+    onProgress?: (status: string) => void
+  ): Promise<{ text: string; provider: string; model: string }> {
+    return new Promise((resolve, reject) => {
+      let reconnectAttempts = 0;
+      const maxReconnectAttempts = 3;
+      let eventSource: EventSource | null = null;
+
+      const connect = () => {
+        eventSource = new EventSource(`/api/research/stream?id=${encodeURIComponent(id)}`);
+
+        eventSource.addEventListener('status', (e) => {
+          const data = JSON.parse(e.data);
+          onProgress?.(data.status);
+        });
+
+        eventSource.addEventListener('outputs', (e) => {
+          const data = JSON.parse(e.data);
+          const text = (data.outputs || [])
+            .filter((b: any) => b.type === 'text')
+            .map((b: any) => b.text)
+            .join('\n\n');
+
+          resolve({
+            text,
+            provider: data.provider || 'google',
+            model: data.model || 'deep-research-pro-preview-12-2025'
+          });
+          eventSource?.close();
+        });
+
+        eventSource.addEventListener('done', (e) => {
+          eventSource?.close();
+        });
+
+        eventSource.addEventListener('error', (e: any) => {
+          const data = e.data ? JSON.parse(e.data) : {};
+
+          if (eventSource?.readyState === EventSource.CLOSED) {
+            if (reconnectAttempts < maxReconnectAttempts) {
+              reconnectAttempts++;
+              Logger.info(`Reconnecting SSE (attempt ${reconnectAttempts})...`);
+              setTimeout(connect, 2000 * reconnectAttempts);
+            } else {
+              reject(new Error(data.message || 'SSE connection failed after retries'));
+            }
+          }
+        });
+
+        eventSource.onerror = () => {
+          if (eventSource?.readyState === EventSource.CLOSED && reconnectAttempts === 0) {
+            eventSource?.close();
+            reject(new Error('SSE not available'));
+          }
+        };
+      };
+
+      connect();
+    });
+  }
+
+  private static async researchWithPolling(
+    id: string,
+    onProgress?: (status: string) => void
+  ): Promise<{ text: string; provider: string; model: string }> {
     let statusRes;
     for (;;) {
       statusRes = await fetch(`/api/research/status?id=${encodeURIComponent(id)}`).then(r => r.json());
-      if (!statusRes.ok) throw new Error(statusRes.message || 'Failed to poll research');
+      if (!statusRes.ok) throw new Error(statusRes.userAction || statusRes.message || 'Failed to poll research');
+
+      onProgress?.(statusRes.status);
+
       if (statusRes.status === 'completed') break;
       await new Promise(r => setTimeout(r, 5000));
     }
+
     const text = (statusRes.outputs || [])
       .filter((b: any) => b.type === 'text')
       .map((b: any) => b.text)
       .join('\n\n');
-    RequestCache.set(key, text);
-    return text;
+
+    return {
+      text,
+      provider: statusRes.provider || 'google',
+      model: statusRes.model || 'deep-research-pro-preview-12-2025'
+    };
   }
-  static async generatePRD(q1: string, q2: string, q3: string, research?: string): Promise<string> {
+  static async generatePRD(q1: string, q2: string, q3: string, research?: string): Promise<{ text: string; provider: string; model: string }> {
     const prompt = `Create a professional one-pager PRD:\n\n1. Product: ${q1}\n2. Users & Problem: ${q2}\n3. Features & Metrics: ${q3}\n${research ? `\nUse this market research to inform your PRD:\n${research}` : ''}`;
     const resp = await fetch('/api/generate/prd', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt })
     }).then(r => r.json());
-    if (!resp.ok) throw new Error(resp.message || 'Failed to generate PRD');
-    return resp.text as string;
+    if (!resp.ok) throw new Error(resp.userAction || resp.message || 'Failed to generate PRD');
+    return { text: resp.text, provider: resp.provider || 'google', model: resp.model || 'gemini-2.5-pro' };
   }
-  static async generatePrototype(prd: string, version: 'prototype'|'alpha'|'beta'|'pilot'): Promise<string> {
+
+  static async generatePrototype(prd: string, version: 'prototype'|'alpha'|'beta'|'pilot'): Promise<{ html: string; provider: string; model: string }> {
     const verMap: Record<string, string> = { prototype: 'flash3', alpha: 'alpha', beta: 'beta', pilot: 'pilot' };
     const resp = await fetch('/api/generate/prototype', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt: prd, version: verMap[version] })
     }).then(r => r.json());
-    if (!resp.ok) throw new Error(resp.message || 'Failed to generate prototype');
-    return resp.html as string;
+    if (!resp.ok) throw new Error(resp.userAction || resp.message || 'Failed to generate prototype');
+    return { html: resp.html, provider: resp.provider || 'unknown', model: resp.model || 'unknown' };
   }
 }
 
@@ -155,13 +248,17 @@ export default function ArabicApp() {
   const t = (key: string) => (TRANSLATIONS as any)[locale]?.[key] || (TRANSLATIONS as any)['en-US'][key] || key;
 
   const [activeTab, setActiveTab] = useState(0);
-  const [researchData, setResearchData] = useState({ product: '', preferences: '' });
+  const [researchData, setResearchData] = useState({ product: '', preferences: '', enableFileSearch: false });
   const [researchReport, setResearchReport] = useState('');
+  const [researchMeta, setResearchMeta] = useState<{ provider: string; model: string } | null>(null);
+  const [researchProgress, setResearchProgress] = useState('');
   const [isResearching, setIsResearching] = useState(false);
   const [formData, setFormData] = useState({ question1: '', question2: '', question3: '' });
   const [generatedPRD, setGeneratedPRD] = useState('');
+  const [prdMeta, setPrdMeta] = useState<{ provider: string; model: string } | null>(null);
   const [isGeneratingPRD, setIsGeneratingPRD] = useState(false);
   const [generatedHTML, setGeneratedHTML] = useState('');
+  const [prototypeMeta, setPrototypeMeta] = useState<{ provider: string; model: string } | null>(null);
   const [isGeneratingPrototype, setIsGeneratingPrototype] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<'prototype'|'alpha'|'beta'|'pilot'>('alpha');
   const [toasts, setToasts] = useState<Array<{id:string;message:string;type:'success'|'error'|'info'|'warning'}>>([]);
@@ -208,11 +305,42 @@ export default function ArabicApp() {
               <textarea className="w-full border rounded-lg p-3 mb-4" rows={2} value={researchData.product} onChange={e=>setResearchData(p=>({...p,product:e.target.value}))} placeholder={t('productPlaceholder')} />
               <label className="block text-sm font-medium mb-2">{t('preferencesLabel')}</label>
               <textarea className="w-full border rounded-lg p-3 mb-4" rows={4} value={researchData.preferences} onChange={e=>setResearchData(p=>({...p,preferences:e.target.value}))} placeholder={t('preferencesPlaceholder')} />
-              <button disabled={isResearching || !researchData.product} onClick={async()=>{ setIsResearching(true); setResearchReport(''); try { const r = await APIClient.research(researchData.product, researchData.preferences); setResearchReport(r); showToast('تم البحث بنجاح','success'); } catch(e){ showToast('حدث خطأ','error'); } finally { setIsResearching(false); } }} className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium">
-                {isResearching ? (<><Loader2 className="animate-spin" size={18}/> جاري البحث...</>) : (<>بدء البحث</>)}
+              <label className="flex items-center gap-2 mb-4 text-sm">
+                <input type="checkbox" checked={researchData.enableFileSearch} onChange={e=>setResearchData(p=>({...p,enableFileSearch:e.target.checked}))} className="rounded" />
+                <span>تفعيل البحث في الملفات (file_search)</span>
+              </label>
+              <button disabled={isResearching || !researchData.product} onClick={async()=>{
+                setIsResearching(true);
+                setResearchReport('');
+                setResearchProgress('');
+                setResearchMeta(null);
+                try {
+                  const r = await APIClient.research(
+                    researchData.product,
+                    researchData.preferences,
+                    researchData.enableFileSearch,
+                    (status) => setResearchProgress(status)
+                  );
+                  setResearchReport(r.text);
+                  setResearchMeta({ provider: r.provider, model: r.model });
+                  showToast('تم البحث بنجاح','success');
+                } catch(e: any){
+                  showToast(e.message || 'حدث خطأ','error');
+                } finally {
+                  setIsResearching(false);
+                  setResearchProgress('');
+                }
+              }} className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium">
+                {isResearching ? (<><Loader2 className="animate-spin" size={18}/> جاري البحث... {researchProgress && `(${researchProgress})`}</>) : (<>بدء البحث</>)}
               </button>
             </div>
             <div className="bg-white rounded-2xl shadow p-6">
+              {researchMeta && (
+                <div className="mb-4 flex gap-2 items-center text-xs">
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded font-medium">{researchMeta.provider}</span>
+                  <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded font-mono">{researchMeta.model}</span>
+                </div>
+              )}
               {researchReport ? (
                 <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: renderMarkdown(researchReport) }} />
               ) : (
@@ -232,7 +360,21 @@ export default function ArabicApp() {
                   <textarea rows={3} className="w-full border rounded-lg p-3" value={(formData as any)[`question${n}`]} onChange={e=>setFormData(p=>({...p,[`question${n}`]:e.target.value}))} />
                 </div>
               ))}
-              <button disabled={isGeneratingPRD || !formData.question1 || !formData.question2 || !formData.question3} onClick={async()=>{ setIsGeneratingPRD(true); setGeneratedPRD(''); try { const prd = await APIClient.generatePRD(formData.question1, formData.question2, formData.question3, researchReport); setGeneratedPRD(prd); showToast('تم إنشاء PRD','success'); } catch(e){ showToast('حدث خطأ','error'); } finally { setIsGeneratingPRD(false); } }} className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium">
+              <button disabled={isGeneratingPRD || !formData.question1 || !formData.question2 || !formData.question3} onClick={async()=>{
+                setIsGeneratingPRD(true);
+                setGeneratedPRD('');
+                setPrdMeta(null);
+                try {
+                  const prd = await APIClient.generatePRD(formData.question1, formData.question2, formData.question3, researchReport);
+                  setGeneratedPRD(prd.text);
+                  setPrdMeta({ provider: prd.provider, model: prd.model });
+                  showToast('تم إنشاء PRD','success');
+                } catch(e: any){
+                  showToast(e.message || 'حدث خطأ','error');
+                } finally {
+                  setIsGeneratingPRD(false);
+                }
+              }} className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium">
                 {isGeneratingPRD ? (<><Loader2 className="animate-spin" size={18}/> جاري الإنشاء...</>) : (<>إنشاء PRD</>)}
               </button>
               {generatedPRD && (
@@ -240,6 +382,12 @@ export default function ArabicApp() {
               )}
             </div>
             <div className="bg-white rounded-2xl shadow p-6">
+              {prdMeta && (
+                <div className="mb-4 flex gap-2 items-center text-xs">
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded font-medium">{prdMeta.provider}</span>
+                  <span className="px-2 py-1 bg-teal-100 text-teal-800 rounded font-mono">{prdMeta.model}</span>
+                </div>
+              )}
               {generatedPRD ? (
                 <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: renderMarkdown(generatedPRD) }} />
               ) : (
@@ -253,12 +401,44 @@ export default function ArabicApp() {
         {activeTab===2 && (
           <div className="bg-white rounded-2xl shadow p-6">
             <div className="grid grid-cols-2 gap-3 mb-4">
-              {(['prototype','alpha','beta','pilot'] as const).map(v => (
-                <button key={v} onClick={()=>setSelectedVersion(v)} className={`p-3 border rounded-lg ${selectedVersion===v?'border-purple-500 bg-purple-50':'border-gray-200 hover:border-gray-300'}`}>{v}</button>
-              ))}
+              {(['prototype','alpha','beta','pilot'] as const).map(v => {
+                const versionLabels = {
+                  prototype: { label: 'Prototype', color: 'blue', hint: 'Gemini 3 Flash' },
+                  alpha: { label: 'Alpha', color: 'purple', hint: 'Gemini 3 Pro' },
+                  beta: { label: 'Beta', color: 'green', hint: 'Claude Sonnet 4.5' },
+                  pilot: { label: 'Pilot', color: 'orange', hint: 'OpenAI GPT-5' }
+                };
+                const vInfo = versionLabels[v];
+                return (
+                  <button key={v} onClick={()=>setSelectedVersion(v)} className={`p-3 border rounded-lg text-left ${selectedVersion===v?`border-${vInfo.color}-500 bg-${vInfo.color}-50`:'border-gray-200 hover:border-gray-300'}`}>
+                    <div className="font-bold">{vInfo.label}</div>
+                    <div className="text-xs text-gray-500">{vInfo.hint}</div>
+                  </button>
+                );
+              })}
             </div>
+            {prototypeMeta && (
+              <div className="mb-4 flex gap-2 items-center text-xs">
+                <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">{prototypeMeta.provider}</span>
+                <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded font-mono">{prototypeMeta.model}</span>
+              </div>
+            )}
             <div className="flex gap-3 mb-4">
-              <button disabled={!generatedPRD || isGeneratingPrototype} onClick={async()=>{ setIsGeneratingPrototype(true); setGeneratedHTML(''); try { const html = await APIClient.generatePrototype(generatedPRD, selectedVersion); setGeneratedHTML(html); showToast('النموذج جاهز','success'); } catch(e){ showToast('حدث خطأ','error'); } finally { setIsGeneratingPrototype(false); } }} className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium">
+              <button disabled={!generatedPRD || isGeneratingPrototype} onClick={async()=>{
+                setIsGeneratingPrototype(true);
+                setGeneratedHTML('');
+                setPrototypeMeta(null);
+                try {
+                  const result = await APIClient.generatePrototype(generatedPRD, selectedVersion);
+                  setGeneratedHTML(result.html);
+                  setPrototypeMeta({ provider: result.provider, model: result.model });
+                  showToast('النموذج جاهز','success');
+                } catch(e: any){
+                  showToast(e.message || 'حدث خطأ','error');
+                } finally {
+                  setIsGeneratingPrototype(false);
+                }
+              }} className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium">
                 {isGeneratingPrototype ? (<><Loader2 className="animate-spin" size={18}/> جاري إنشاء النموذج...</>) : (<>إنشاء النموذج</>)}
               </button>
               {generatedHTML && (

@@ -27,15 +27,63 @@ const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 // In-memory mock jobs for research when GOOGLE_API_KEY missing
 const mockResearchJobs = new Map();
 
+// Retry utility with exponential backoff and jitter
+async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
+  let lastError;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastError = e;
+      if (attempt < maxRetries - 1) {
+        const jitter = Math.random() * 0.3; // 0-30% jitter
+        const delay = baseDelay * Math.pow(2, attempt) * (1 + jitter);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw lastError;
+}
+
+// Error normalization
+function normalizeError(error, provider = 'unknown') {
+  const errorMap = {
+    'ECONNREFUSED': { code: 'CONNECTION_FAILED', message: 'تعذر الاتصال بالخدمة. يُرجى المحاولة مرة أخرى.', userAction: 'تحقق من اتصالك بالإنترنت وحاول مجددًا' },
+    'ETIMEDOUT': { code: 'TIMEOUT', message: 'انتهت مهلة الطلب. يُرجى المحاولة مرة أخرى.', userAction: 'حاول مرة أخرى بعد قليل' },
+    'ENOTFOUND': { code: 'DNS_ERROR', message: 'تعذر العثور على الخدمة.', userAction: 'تحقق من إعدادات الشبكة' },
+    'RATE_LIMIT': { code: 'RATE_LIMIT', message: 'تم تجاوز حد الطلبات. يُرجى الانتظار قليلاً.', userAction: 'انتظر دقيقة واحدة وحاول مجددًا' },
+    'QUOTA_EXCEEDED': { code: 'QUOTA_EXCEEDED', message: 'تم تجاوز الحصة المخصصة.', userAction: 'راجع حد الاستخدام الخاص بك' },
+    'INVALID_API_KEY': { code: 'AUTH_ERROR', message: 'مفتاح API غير صحيح.', userAction: 'تحقق من إعدادات المفاتيح' },
+    'PERMISSION_DENIED': { code: 'PERMISSION_DENIED', message: 'تم رفض الإذن.', userAction: 'تحقق من صلاحيات API' }
+  };
+
+  const errorType = error.code || error.message?.includes('rate limit') ? 'RATE_LIMIT' :
+                    error.message?.includes('quota') ? 'QUOTA_EXCEEDED' :
+                    error.message?.includes('API key') ? 'INVALID_API_KEY' : 'UNKNOWN';
+
+  const normalized = errorMap[errorType] || errorMap[error.code] || {
+    code: 'UNKNOWN_ERROR',
+    message: error.message || 'حدث خطأ غير متوقع',
+    userAction: 'حاول مرة أخرى أو اتصل بالدعم'
+  };
+
+  return {
+    ...normalized,
+    provider,
+    originalError: error.message,
+    timestamp: new Date().toISOString()
+  };
+}
+
 function ok(res, data) { return res.json({ ok: true, ...data }); }
-function err(res, code, message, provider, status) {
-  return res.status(status || 500).json({ ok: false, code, message, provider, status: status || 500 });
+function err(res, code, message, provider, status, userAction) {
+  return res.status(status || 500).json({ ok: false, code, message, provider, status: status || 500, userAction });
 }
 
 // Start Deep Research (Gemini Interactions API)
 app.post('/api/research/start', async (req, res) => {
-  const { input, fileSearchStoreNames } = req.body || {};
-  if (!input || typeof input !== 'string') return err(res, 'BAD_REQUEST', 'input is required');
+  const { input, fileSearchStoreNames, enableFileSearch } = req.body || {};
+  if (!input || typeof input !== 'string') return err(res, 'BAD_REQUEST', 'input is required', null, 400, 'تأكد من إدخال نص صحيح');
 
   if (!google) {
     // Mock background job
@@ -47,23 +95,48 @@ app.post('/api/research/start', async (req, res) => {
         outputs: [{ type: 'text', text: `# Executive Summary\n\n**Topic:** ${input}\n\n## Findings\n- Result A\n- Result B\n\n## Citations\n- https://example.com` }]
       });
     }, 2000);
-    return ok(res, { interactionId: id, status: 'in_progress', provider: 'google' });
+    return ok(res, { interactionId: id, status: 'in_progress', provider: 'google', model: 'deep-research-pro-preview-12-2025' });
   }
 
   try {
-    const tools = Array.isArray(fileSearchStoreNames) && fileSearchStoreNames.length
-      ? [{ type: 'file_search', file_search_store_names: fileSearchStoreNames }]
-      : undefined;
+    // Configure file_search with secure settings
+    let tools;
+    if (enableFileSearch) {
+      const storeNames = Array.isArray(fileSearchStoreNames) && fileSearchStoreNames.length
+        ? fileSearchStoreNames
+        : [process.env.GEMINI_FILE_SEARCH_STORE || 'default-prd-store'];
 
-    const interaction = await google.interactions.create({
-      input,
-      agent: 'deep-research-pro-preview-12-2025',
-      background: true,
-      tools
+      tools = [{
+        type: 'file_search',
+        file_search_store_names: storeNames,
+        // Secure configuration
+        config: {
+          max_results: 10,
+          min_relevance_score: 0.7,
+          enable_citations: true
+        }
+      }];
+    }
+
+    const interaction = await retryWithBackoff(async () => {
+      return await google.interactions.create({
+        input,
+        agent: 'deep-research-pro-preview-12-2025',
+        background: true,
+        tools
+      });
+    }, 3, 2000);
+
+    return ok(res, {
+      interactionId: interaction.id,
+      status: interaction.status,
+      provider: 'google',
+      model: 'deep-research-pro-preview-12-2025',
+      fileSearchEnabled: !!enableFileSearch
     });
-    return ok(res, { interactionId: interaction.id, status: interaction.status, provider: 'google' });
   } catch (e) {
-    return err(res, 'PROVIDER_ERROR', e.message, 'google');
+    const normalized = normalizeError(e, 'google');
+    return err(res, normalized.code, normalized.message, 'google', 500, normalized.userAction);
   }
 });
 
@@ -82,6 +155,85 @@ app.get('/api/research/status', async (req, res) => {
     return ok(res, { status: interaction.status, outputs: interaction.outputs, provider: 'google' });
   } catch (e) {
     return err(res, 'PROVIDER_ERROR', e.message, 'google');
+  }
+});
+
+// SSE Stream for Deep Research (with reconnection support)
+app.get('/api/research/stream', async (req, res) => {
+  const id = req.query.id;
+  if (!id) return err(res, 'BAD_REQUEST', 'id is required');
+
+  // Set up SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+
+  const sendEvent = (event, data) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  const sendError = (code, message) => {
+    sendEvent('error', { code, message, provider: 'google' });
+    res.end();
+  };
+
+  if (!google) {
+    // Mock streaming
+    const job = mockResearchJobs.get(id);
+    if (!job) return sendError('NOT_FOUND', 'interaction not found');
+
+    sendEvent('status', { status: job.status, provider: 'google' });
+
+    const pollInterval = setInterval(async () => {
+      const currentJob = mockResearchJobs.get(id);
+      if (!currentJob) {
+        clearInterval(pollInterval);
+        return sendError('NOT_FOUND', 'interaction not found');
+      }
+
+      sendEvent('status', { status: currentJob.status, provider: 'google' });
+
+      if (currentJob.status === 'completed') {
+        sendEvent('outputs', { outputs: currentJob.outputs, provider: 'google' });
+        sendEvent('done', { status: 'completed' });
+        clearInterval(pollInterval);
+        res.end();
+      }
+    }, 2000);
+
+    req.on('close', () => {
+      clearInterval(pollInterval);
+    });
+    return;
+  }
+
+  try {
+    // Real streaming with Gemini
+    const pollInterval = setInterval(async () => {
+      try {
+        const interaction = await google.interactions.get(id);
+        sendEvent('status', { status: interaction.status, provider: 'google', model: 'deep-research-pro-preview-12-2025' });
+
+        if (interaction.status === 'completed' || interaction.status === 'failed') {
+          clearInterval(pollInterval);
+          if (interaction.outputs) {
+            sendEvent('outputs', { outputs: interaction.outputs, provider: 'google' });
+          }
+          sendEvent('done', { status: interaction.status });
+          res.end();
+        }
+      } catch (e) {
+        clearInterval(pollInterval);
+        sendError('PROVIDER_ERROR', e.message);
+      }
+    }, 3000);
+
+    req.on('close', () => {
+      clearInterval(pollInterval);
+    });
+  } catch (e) {
+    return sendError('PROVIDER_ERROR', e.message);
   }
 });
 
