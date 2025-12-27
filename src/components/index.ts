@@ -1,4 +1,5 @@
 /**
+<<<<<<< HEAD
  * Components Export
  * All Sections
  */
@@ -30,3 +31,7 @@ export { CollaborationHub } from './CollaborationHub';
 // Section 15 & 16 Components
 export { default as AchievementSystem } from './AchievementSystem';
 export { default as AIMentor } from './AIMentor';
+
+// Section 17 & 18 Components
+export { ExportManager } from './ExportManager';
+export { DigestSettings } from './DigestSettings';

@@ -1,5 +1,4 @@
 /**
-<<<<<<< HEAD
  * Types and Interfaces for PRD Application
  * All Sections Implementation
  */
@@ -509,3 +508,10 @@ export interface StreakStorage {
 
 export * from './achievementTypes';
 export * from './mentorTypes';
+
+// ============================================
+// Section 17 & 18: Export & Email Types
+// ============================================
+
+export * from './export.types';
+export * from './email.types';

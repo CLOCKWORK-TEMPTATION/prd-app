@@ -1,4 +1,5 @@
 /**
+<<<<<<< HEAD
  * Services Export
  * All Sections
  */
@@ -17,3 +18,7 @@ export { CollaborationService } from './collaborationService';
 // Section 15 & 16 Services
 export { default as achievementService } from './achievementService';
 export { default as mentorService } from './mentorService';
+
+// Section 17 & 18 Services
+export { exportService } from './exportService';
+export { emailService } from './emailService';
