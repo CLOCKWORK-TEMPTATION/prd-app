@@ -38,8 +38,35 @@ The dev proxy forwards `/api` to `http://localhost:4000`.
 - `GOOGLE_API_KEY`: Google Gemini API key (optional)
 - `ANTHROPIC_API_KEY`: Anthropic API key (optional)
 - `OPENAI_API_KEY`: OpenAI API key (optional)
+- `GEMINI_FILE_SEARCH_STORE`: Custom file search store name for Gemini Deep Research (optional, default: `default-prd-store`)
 
 If keys are missing, the backend returns stubbed results so the app works offline.
+
+## New Features
+
+### SSE Streaming with Reconnection
+- The app now uses Server-Sent Events (SSE) for real-time streaming of Deep Research results
+- Automatic reconnection with exponential backoff (up to 3 attempts)
+- Fallback to traditional polling if SSE is unavailable
+- Progress indicators show current status during research
+
+### File Search for Gemini
+- Enable file_search in the Product Research tab to leverage custom file stores
+- Secure configuration with max_results, min_relevance_score, and citations
+- Configure store names via `GEMINI_FILE_SEARCH_STORE` environment variable
+
+### Provider/Model Tags
+- All generated content now displays which provider and model was used
+- Clear visual indicators in the UI for transparency
+- Research tab: Shows Google Gemini Deep Research model
+- PRD tab: Shows Gemini 2.5 Pro
+- Prototype tab: Shows specific model for each version (Flash/Pro/Claude/GPT)
+
+### Enhanced Error Handling
+- Unified error normalization with user-friendly Arabic messages
+- Automatic retry with exponential backoff and jitter (up to 3 attempts)
+- Actionable error messages guide users on next steps
+- Network errors, rate limits, and quota exceeded are handled gracefully
 
 ## Model Mapping
 
