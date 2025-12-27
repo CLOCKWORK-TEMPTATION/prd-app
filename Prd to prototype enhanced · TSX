@@ -1,0 +1,2259 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { 
+  FileText, Copy, Download, Loader2, Upload, Code, ArrowRight, X, 
+  ChevronLeft, Sparkles, Zap, Search, Target, TrendingUp, Settings,
+  Moon, Sun, RefreshCw, AlertCircle, CheckCircle, Info, XCircle,
+  Maximize2, Minimize2, Save, RotateCcw, Activity
+} from 'lucide-react';
+
+/**
+ * نظام الترجمة متعدد اللغات
+ * يدعم العربية والإنجليزية مع RTL support
+ */
+const TRANSLATIONS = {
+  "en-US": {
+    "pageTitle": "PRD to Prototype",
+    "pageSubtitle": "Research, plan, and build your product from idea to prototype",
+    "tab1": "Product Research",
+    "tab2": "Create PRD",
+    "tab3": "Generate Prototype",
+    "researchTitle": "Product Research Assistant",
+    "researchSubtitle": "Get comprehensive market insights before creating your PRD",
+    "productLabel": "What product or service are you researching?",
+    "productPlaceholder": "e.g., A team collaboration tool for remote workers",
+    "preferencesLabel": "What are your specific preferences and priorities?",
+    "preferencesPlaceholder": "e.g., Must integrate with Slack, under $50/month, mobile-first design, focus on async communication...",
+    "startResearch": "Start Research",
+    "researching": "Researching...",
+    "researchComplete": "Research Complete!",
+    "useToPRD": "Use Research to Create PRD",
+    "threeQuestions": "3 Questions",
+    "tryExample": "Try:",
+    "question1Label": "1. What product or feature are you building?",
+    "question1Placeholder": "e.g., A real-time collaboration dashboard for remote teams...",
+    "question2Label": "2. Who are the target users and what problem does this solve?",
+    "question2Placeholder": "e.g., Remote team managers who struggle with visibility into project progress...",
+    "question3Label": "3. What are the key features and how will you measure success?",
+    "question3Placeholder": "e.g., Live status updates, team activity feed... Success measured by 40% reduction in status meeting time...",
+    "generatePRD": "Generate PRD",
+    "generatingPRD": "Generating PRD...",
+    "copyTooltip": "Copy to clipboard",
+    "downloadTooltip": "Download as markdown",
+    "emptyStateText": "Your PRD will appear here after answering the questions",
+    "errorMessage": "Failed to generate. Please try again.",
+    "teamDashboard": "Team Dashboard",
+    "shoppingApp": "Shopping App",
+    "fitnessTracker": "Fitness Tracker",
+    "uploadTitle": "Upload PRD or Use Generated",
+    "uploadInstructions": "Drag and drop your PRD file here or click to browse",
+    "supportedFormats": "Supports PDF, Markdown (.md), and TXT files",
+    "chooseFile": "Choose File",
+    "orUseGenerated": "Or use the PRD you just created",
+    "useGeneratedPRD": "Use Generated PRD",
+    "generatePrototype": "Generate Prototype",
+    "generatingPrototype": "Generating prototype...",
+    "prototypeReady": "Prototype Ready!",
+    "downloadHTML": "Download HTML",
+    "openInNewTab": "Open in New Tab",
+    "backToEditor": "Back to Editor",
+    "selectedFile": "Selected file:",
+    "invalidFileType": "Invalid file type. Please upload PDF, MD, or TXT.",
+    "noPRDAvailable": "No PRD available. Create one first or upload a file.",
+    "convertToPrototype": "Convert to Prototype",
+    "selectVersion": "Select Version",
+    "prototypeOption": "Prototype",
+    "prototypeDesc": "Quick wireframe with basic interactions",
+    "alphaOption": "Alpha Version",
+    "alphaDesc": "Full-featured with animations, responsive design & polish",
+    "betaOption": "Beta Version",
+    "betaDesc": "Production-ready with backend simulation, data persistence & advanced features",
+    "pilotOption": "Pilot/Pre-production",
+    "pilotDesc": "Enterprise-grade with A/B testing, analytics, monitoring & feature flags",
+    "recommended": "Recommended",
+    "mostAdvanced": "Most Advanced",
+    "readyForLaunch": "Ready for Launch",
+    "settings": "Settings",
+    "darkMode": "Dark Mode",
+    "autoSave": "Auto Save",
+    "cacheResults": "Cache Results",
+    "retryOnError": "Retry on Error",
+    "maxRetries": "Max Retries",
+    "requestTimeout": "Request Timeout (seconds)",
+    "saveSettings": "Save Settings",
+    "resetSettings": "Reset Settings",
+    "copied": "Copied!",
+    "downloadSuccess": "Download successful!",
+    "retrying": "Retrying...",
+    "errorBoundaryTitle": "Something went wrong",
+    "errorBoundaryMessage": "An unexpected error occurred. Please try refreshing the page.",
+    "retry": "Retry",
+    "clearCache": "Clear Cache",
+    "cacheCleared": "Cache cleared!",
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit Fullscreen",
+    "analytics": "Analytics",
+    "totalRequests": "Total Requests",
+    "successRate": "Success Rate",
+    "avgResponseTime": "Avg Response Time",
+    "cachedResponses": "Cached Responses"
+  },
+  "ar-EG": {
+    "pageTitle": "من البحث إلى Prototype",
+    "pageSubtitle": "ابحث، خطط، وابنِ منتجك من الفكرة إلى النموذج",
+    "tab1": "بحث المنتج",
+    "tab2": "إنشاء PRD",
+    "tab3": "إنشاء Prototype",
+    "researchTitle": "مساعد البحث عن المنتج",
+    "researchSubtitle": "احصل على رؤى شاملة للسوق قبل إنشاء PRD",
+    "productLabel": "ما المنتج أو الخدمة التي تبحث عنها؟",
+    "productPlaceholder": "مثال: أداة تعاون للفرق عن بُعد",
+    "preferencesLabel": "ما تفضيلاتك وأولوياتك المحددة؟",
+    "preferencesPlaceholder": "مثال: يجب التكامل مع Slack، أقل من 50$/شهر، تصميم mobile-first، التركيز على التواصل غير المتزامن...",
+    "startResearch": "ابدأ البحث",
+    "researching": "جاري البحث...",
+    "researchComplete": "اكتمل البحث!",
+    "useToPRD": "استخدم البحث لإنشاء PRD",
+    "threeQuestions": "٣ أسئلة",
+    "tryExample": "جرّب:",
+    "question1Label": "١. ما المنتج أو الميزة التي تبنيها؟",
+    "question1Placeholder": "مثال: لوحة تحكم للتعاون في الوقت الفعلي للفرق عن بُعد...",
+    "question2Label": "٢. من هم المستخدمون المستهدفون وما المشكلة التي يحلها؟",
+    "question2Placeholder": "مثال: مديرو الفرق عن بُعد الذين يعانون من عدم وضوح تقدم المشروع...",
+    "question3Label": "٣. ما الميزات الرئيسية وكيف ستقيس النجاح؟",
+    "question3Placeholder": "مثال: تحديثات حالة مباشرة، موجز نشاط الفريق... النجاح يُقاس بتقليل ٤٠٪ من وقت اجتماعات الحالة...",
+    "generatePRD": "إنشاء PRD",
+    "generatingPRD": "جاري الإنشاء...",
+    "copyTooltip": "نسخ",
+    "downloadTooltip": "تحميل كـ markdown",
+    "emptyStateText": "سيظهر الـ PRD هنا بعد الإجابة على الأسئلة",
+    "errorMessage": "فشل الإنشاء. حاول مرة أخرى.",
+    "teamDashboard": "لوحة الفريق",
+    "shoppingApp": "تطبيق تسوق",
+    "fitnessTracker": "متتبع اللياقة",
+    "uploadTitle": "ارفع PRD أو استخدم المُنشأ",
+    "uploadInstructions": "اسحب وأفلت ملف PRD هنا أو انقر للتصفح",
+    "supportedFormats": "يدعم PDF و Markdown و TXT",
+    "chooseFile": "اختر ملف",
+    "orUseGenerated": "أو استخدم الـ PRD الذي أنشأته",
+    "useGeneratedPRD": "استخدم PRD المُنشأ",
+    "generatePrototype": "إنشاء Prototype",
+    "generatingPrototype": "جاري إنشاء النموذج...",
+    "prototypeReady": "النموذج جاهز!",
+    "downloadHTML": "تحميل HTML",
+    "openInNewTab": "فتح في تبويب جديد",
+    "backToEditor": "العودة للمحرر",
+    "selectedFile": "الملف المختار:",
+    "invalidFileType": "نوع ملف غير صالح. ارفع PDF أو MD أو TXT.",
+    "noPRDAvailable": "لا يوجد PRD. أنشئ واحداً أولاً أو ارفع ملف.",
+    "convertToPrototype": "تحويل إلى Prototype",
+    "selectVersion": "اختر الإصدار",
+    "prototypeOption": "Prototype",
+    "prototypeDesc": "نموذج سريع مع تفاعلات أساسية",
+    "alphaOption": "Alpha Version",
+    "alphaDesc": "إصدار متكامل مع animations وتصميم متجاوب ومصقول",
+    "betaOption": "Beta Version",
+    "betaDesc": "جاهز للإنتاج مع محاكاة backend وحفظ البيانات وميزات متقدمة",
+    "pilotOption": "Pilot/Pre-production",
+    "pilotDesc": "مستوى مؤسسي مع A/B testing وتحليلات ومراقبة وfeature flags",
+    "recommended": "موصى به",
+    "mostAdvanced": "الأكثر تطوراً",
+    "readyForLaunch": "جاهز للإطلاق",
+    "settings": "الإعدادات",
+    "darkMode": "الوضع الليلي",
+    "autoSave": "حفظ تلقائي",
+    "cacheResults": "تخزين مؤقت للنتائج",
+    "retryOnError": "إعادة المحاولة عند الخطأ",
+    "maxRetries": "أقصى عدد للمحاولات",
+    "requestTimeout": "مهلة الطلب (ثواني)",
+    "saveSettings": "حفظ الإعدادات",
+    "resetSettings": "إعادة تعيين الإعدادات",
+    "copied": "تم النسخ!",
+    "downloadSuccess": "نجح التحميل!",
+    "retrying": "جاري إعادة المحاولة...",
+    "errorBoundaryTitle": "حدث خطأ ما",
+    "errorBoundaryMessage": "حدث خطأ غير متوقع. يرجى تحديث الصفحة.",
+    "retry": "إعادة المحاولة",
+    "clearCache": "مسح الذاكرة المؤقتة",
+    "cacheCleared": "تم مسح الذاكرة المؤقتة!",
+    "fullscreen": "ملء الشاشة",
+    "exitFullscreen": "الخروج من ملء الشاشة",
+    "analytics": "التحليلات",
+    "totalRequests": "إجمالي الطلبات",
+    "successRate": "معدل النجاح",
+    "avgResponseTime": "متوسط وقت الاستجابة",
+    "cachedResponses": "الردود المخزنة"
+  }
+};
+
+/**
+ * نظام إدارة الإعدادات
+ * يدير جميع إعدادات التطبيق مع التخزين المحلي
+ */
+class ConfigManager {
+  private static instance: ConfigManager;
+  private config: Record<string, any>;
+  private readonly STORAGE_KEY = 'prd_prototype_config';
+  private readonly DEFAULT_CONFIG = {
+    darkMode: false,
+    autoSave: true,
+    cacheResults: true,
+    retryOnError: true,
+    maxRetries: 3,
+    requestTimeout: 60,
+    locale: 'en-US',
+    analytics: true
+  };
+
+  private constructor() {
+    this.config = this.loadConfig();
+  }
+
+  /**
+   * Singleton pattern للحصول على instance واحدة
+   */
+  public static getInstance(): ConfigManager {
+    if (!ConfigManager.instance) {
+      ConfigManager.instance = new ConfigManager();
+    }
+    return ConfigManager.instance;
+  }
+
+  /**
+   * تحميل الإعدادات من localStorage
+   */
+  private loadConfig(): Record<string, any> {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        return { ...this.DEFAULT_CONFIG, ...JSON.parse(stored) };
+      }
+    } catch (error) {
+      Logger.error('Failed to load config', error);
+    }
+    return { ...this.DEFAULT_CONFIG };
+  }
+
+  /**
+   * حفظ الإعدادات إلى localStorage
+   */
+  private saveConfig(): void {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.config));
+    } catch (error) {
+      Logger.error('Failed to save config', error);
+    }
+  }
+
+  /**
+   * الحصول على قيمة إعداد
+   */
+  public get(key: string): any {
+    return this.config[key];
+  }
+
+  /**
+   * تعيين قيمة إعداد
+   */
+  public set(key: string, value: any): void {
+    this.config[key] = value;
+    this.saveConfig();
+  }
+
+  /**
+   * الحصول على جميع الإعدادات
+   */
+  public getAll(): Record<string, any> {
+    return { ...this.config };
+  }
+
+  /**
+   * تحديث عدة إعدادات مرة واحدة
+   */
+  public updateMultiple(updates: Record<string, any>): void {
+    this.config = { ...this.config, ...updates };
+    this.saveConfig();
+  }
+
+  /**
+   * إعادة تعيين الإعدادات إلى القيم الافتراضية
+   */
+  public reset(): void {
+    this.config = { ...this.DEFAULT_CONFIG };
+    this.saveConfig();
+  }
+}
+
+/**
+ * نظام Logging احترافي
+ * يسجل جميع الأحداث والأخطاء
+ */
+class Logger {
+  private static logs: Array<{ level: string; message: string; timestamp: Date; data?: any }> = [];
+  private static readonly MAX_LOGS = 1000;
+
+  /**
+   * تسجيل رسالة معلومات
+   */
+  public static info(message: string, data?: any): void {
+    this.log('INFO', message, data);
+    console.info(`[INFO] ${message}`, data);
+  }
+
+  /**
+   * تسجيل رسالة تحذير
+   */
+  public static warn(message: string, data?: any): void {
+    this.log('WARN', message, data);
+    console.warn(`[WARN] ${message}`, data);
+  }
+
+  /**
+   * تسجيل رسالة خطأ
+   */
+  public static error(message: string, data?: any): void {
+    this.log('ERROR', message, data);
+    console.error(`[ERROR] ${message}`, data);
+  }
+
+  /**
+   * تسجيل رسالة debug
+   */
+  public static debug(message: string, data?: any): void {
+    this.log('DEBUG', message, data);
+    console.debug(`[DEBUG] ${message}`, data);
+  }
+
+  /**
+   * حفظ log في المصفوفة
+   */
+  private static log(level: string, message: string, data?: any): void {
+    this.logs.push({
+      level,
+      message,
+      timestamp: new Date(),
+      data
+    });
+
+    // حذف السجلات القديمة إذا تجاوزت الحد الأقصى
+    if (this.logs.length > this.MAX_LOGS) {
+      this.logs.shift();
+    }
+  }
+
+  /**
+   * الحصول على جميع السجلات
+   */
+  public static getLogs(): typeof Logger.logs {
+    return [...this.logs];
+  }
+
+  /**
+   * مسح جميع السجلات
+   */
+  public static clear(): void {
+    this.logs = [];
+  }
+
+  /**
+   * تصدير السجلات كملف
+   */
+  public static export(): void {
+    const blob = new Blob([JSON.stringify(this.logs, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `logs-${new Date().toISOString()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+}
+
+/**
+ * نظام Cache للطلبات
+ * يخزن نتائج الطلبات لتحسين الأداء
+ */
+class RequestCache {
+  private static cache: Map<string, { data: any; timestamp: number; ttl: number }> = new Map();
+  private static readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 دقائق
+
+  /**
+   * الحصول على بيانات من الـ cache
+   */
+  public static get(key: string): any | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    // التحقق من انتهاء صلاحية الـ cache
+    if (Date.now() - entry.timestamp > entry.ttl) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    Logger.info('Cache hit', { key });
+    return entry.data;
+  }
+
+  /**
+   * حفظ بيانات في الـ cache
+   */
+  public static set(key: string, data: any, ttl: number = this.DEFAULT_TTL): void {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl
+    });
+    Logger.info('Cache set', { key });
+  }
+
+  /**
+   * حذف عنصر من الـ cache
+   */
+  public static delete(key: string): void {
+    this.cache.delete(key);
+    Logger.info('Cache delete', { key });
+  }
+
+  /**
+   * مسح جميع الـ cache
+   */
+  public static clear(): void {
+    this.cache.clear();
+    Logger.info('Cache cleared');
+  }
+
+  /**
+   * الحصول على عدد العناصر في الـ cache
+   */
+  public static size(): number {
+    return this.cache.size;
+  }
+
+  /**
+   * الحصول على جميع المفاتيح
+   */
+  public static keys(): string[] {
+    return Array.from(this.cache.keys());
+  }
+}
+
+/**
+ * نظام Analytics لتتبع الأحداث
+ */
+class Analytics {
+  private static events: Array<{ event: string; timestamp: Date; data?: any }> = [];
+  private static metrics = {
+    totalRequests: 0,
+    successfulRequests: 0,
+    failedRequests: 0,
+    totalResponseTime: 0,
+    cachedResponses: 0
+  };
+
+  /**
+   * تسجيل حدث
+   */
+  public static track(event: string, data?: any): void {
+    const config = ConfigManager.getInstance();
+    if (!config.get('analytics')) return;
+
+    this.events.push({
+      event,
+      timestamp: new Date(),
+      data
+    });
+
+    Logger.debug('Analytics event', { event, data });
+  }
+
+  /**
+   * تسجيل طلب API
+   */
+  public static trackRequest(success: boolean, responseTime: number, cached: boolean = false): void {
+    this.metrics.totalRequests++;
+    if (success) {
+      this.metrics.successfulRequests++;
+    } else {
+      this.metrics.failedRequests++;
+    }
+    this.metrics.totalResponseTime += responseTime;
+    if (cached) {
+      this.metrics.cachedResponses++;
+    }
+  }
+
+  /**
+   * الحصول على المقاييس
+   */
+  public static getMetrics(): typeof Analytics.metrics & { successRate: number; avgResponseTime: number } {
+    const successRate = this.metrics.totalRequests > 0
+      ? (this.metrics.successfulRequests / this.metrics.totalRequests) * 100
+      : 0;
+    
+    const avgResponseTime = this.metrics.successfulRequests > 0
+      ? this.metrics.totalResponseTime / this.metrics.successfulRequests
+      : 0;
+
+    return {
+      ...this.metrics,
+      successRate: Math.round(successRate),
+      avgResponseTime: Math.round(avgResponseTime)
+    };
+  }
+
+  /**
+   * إعادة تعيين المقاييس
+   */
+  public static resetMetrics(): void {
+    this.metrics = {
+      totalRequests: 0,
+      successfulRequests: 0,
+      failedRequests: 0,
+      totalResponseTime: 0,
+      cachedResponses: 0
+    };
+  }
+
+  /**
+   * الحصول على جميع الأحداث
+   */
+  public static getEvents(): typeof Analytics.events {
+    return [...this.events];
+  }
+}
+
+/**
+ * Toast Notification Component
+ * نظام إشعارات مرئي للمستخدم
+ */
+interface ToastProps {
+  message: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  duration?: number;
+  onClose: () => void;
+}
+
+const Toast: React.FC<ToastProps> = ({ message, type, duration = 3000, onClose }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, duration);
+    return () => clearTimeout(timer);
+  }, [duration, onClose]);
+
+  const icons = {
+    success: <CheckCircle size={20} />,
+    error: <XCircle size={20} />,
+    info: <Info size={20} />,
+    warning: <AlertCircle size={20} />
+  };
+
+  const colors = {
+    success: 'bg-green-500',
+    error: 'bg-red-500',
+    info: 'bg-blue-500',
+    warning: 'bg-yellow-500'
+  };
+
+  return (
+    <div className={`fixed top-4 right-4 ${colors[type]} text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 animate-slide-in-right z-50 max-w-md`}>
+      {icons[type]}
+      <span className="flex-1">{message}</span>
+      <button onClick={onClose} className="hover:bg-white/20 p-1 rounded">
+        <X size={16} />
+      </button>
+    </div>
+  );
+};
+
+/**
+ * Toast Manager Hook
+ * إدارة الإشعارات في التطبيق
+ */
+interface ToastData {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+}
+
+const useToast = () => {
+  const [toasts, setToasts] = useState<ToastData[]>([]);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, message, type }]);
+    Analytics.track('toast_shown', { type, message });
+  }, []);
+
+  const hideToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  return { toasts, showToast, hideToast };
+};
+
+/**
+ * Error Boundary Component
+ * معالجة الأخطاء على مستوى التطبيق
+ */
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode; t: (key: string) => string },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    Logger.error('Error boundary caught error', { error: error.message, errorInfo });
+    Analytics.track('error_boundary_triggered', { error: error.message });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      const { t } = this.props;
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-100 to-pink-100 p-6">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+            <XCircle size={64} className="mx-auto text-red-500 mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('errorBoundaryTitle')}</h1>
+            <p className="text-gray-600 mb-6">{t('errorBoundaryMessage')}</p>
+            {this.state.error && (
+              <pre className="bg-gray-100 p-4 rounded-lg text-xs text-left mb-6 overflow-auto max-h-40">
+                {this.state.error.message}
+              </pre>
+            )}
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg flex items-center justify-center gap-2"
+            >
+              <RefreshCw size={18} /> {t('retry')}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+/**
+ * API Client مع retry logic و caching
+ */
+class APIClient {
+  private static async makeRequest(
+    prompt: string,
+    tools: any[] = [],
+    maxTokens: number = 4000,
+    retryCount: number = 0
+  ): Promise<any> {
+    const config = ConfigManager.getInstance();
+    const maxRetries = config.get('maxRetries');
+    const timeout = config.get('requestTimeout') * 1000;
+    const useCache = config.get('cacheResults');
+
+    // التحقق من الـ cache
+    const cacheKey = `api_${JSON.stringify({ prompt, tools })}`;
+    if (useCache) {
+      const cached = RequestCache.get(cacheKey);
+      if (cached) {
+        Analytics.trackRequest(true, 0, true);
+        return cached;
+      }
+    }
+
+    const startTime = Date.now();
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: maxTokens,
+          tools: tools.length > 0 ? tools : undefined,
+          messages: [{ role: "user", content: prompt }]
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      const responseTime = Date.now() - startTime;
+
+      // حفظ في الـ cache
+      if (useCache) {
+        RequestCache.set(cacheKey, data);
+      }
+
+      Analytics.trackRequest(true, responseTime, false);
+      Logger.info('API request successful', { responseTime, cached: false });
+
+      return data;
+
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      Analytics.trackRequest(false, responseTime, false);
+      Logger.error('API request failed', { error: error.message, retryCount });
+
+      // إعادة المحاولة إذا كان مفعل
+      if (config.get('retryOnError') && retryCount < maxRetries) {
+        Logger.info('Retrying API request', { retryCount: retryCount + 1 });
+        // انتظار exponential backoff قبل إعادة المحاولة
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+        return this.makeRequest(prompt, tools, maxTokens, retryCount + 1);
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * طلب بحث مع web search tool
+   */
+  public static async research(product: string, preferences: string): Promise<string> {
+    const prompt = `You are a research assistant tasked with conducting thorough web research to create a comprehensive buyer report.
+
+Product to research:
+${product}
+
+User's specific preferences and priorities:
+${preferences}
+
+Your research should be comprehensive and cover the following areas:
+
+1. **Product Overview**: What the product/service is, its main features, and primary use cases
+2. **Top Options**: Identify the leading brands, models, or providers in this category
+3. **User Preferences Alignment**: Specifically address how different options align with the stated preferences
+4. **Expert Reviews and Ratings**: Find professional reviews and ratings from credible sources
+5. **User Reviews and Feedback**: Gather real user experiences, common complaints, and praise
+6. **Pricing Information**: Compare prices across different options and retailers
+7. **Key Differentiators**: What sets the best options apart from competitors
+8. **Potential Drawbacks**: Any limitations, common issues, or concerns to be aware of
+
+Search the web systematically to gather this information, then compile your findings into a comprehensive report with the following sections:
+
+1. **Executive Summary**: A brief overview of your findings and top recommendations
+2. **Detailed Analysis**: In-depth information about the best 3-5 options
+3. **Preference-Specific Insights**: For each stated preference, explain which options best meet that need
+4. **Comparison Table**: A clear comparison of key features, prices, and ratings
+5. **Pros and Cons**: For each top option, list the main advantages and disadvantages
+6. **Final Recommendations**: Your top 1-2 recommendations with clear justification
+
+Format your response in markdown with clear headings and sections.`;
+
+    const data = await this.makeRequest(
+      prompt,
+      [{ type: "web_search_20250305", name: "web_search" }],
+      4000
+    );
+
+    // استخراج النص من جميع content blocks
+    const reportText = data.content
+      .filter((block: any) => block.type === 'text')
+      .map((block: any) => block.text)
+      .join('\n\n');
+
+    return reportText;
+  }
+
+  /**
+   * إنشاء PRD
+   */
+  public static async generatePRD(
+    question1: string,
+    question2: string,
+    question3: string,
+    researchReport?: string
+  ): Promise<string> {
+    let prompt = `Create a professional one-pager PRD:\n\n1. Product: ${question1}\n2. Users & Problem: ${question2}\n3. Features & Metrics: ${question3}\n\nFormat with markdown headers: # One-pager, ## Goals, ## User stories, ## Features, ## Success metrics, ## Milestones. Be specific and actionable.`;
+
+    if (researchReport) {
+      prompt += `\n\nUse this market research to inform your PRD:\n${researchReport}`;
+    }
+
+    const data = await this.makeRequest(prompt, [], 2000);
+    return data.content[0].text;
+  }
+
+  /**
+   * إنشاء Prototype
+   */
+  public static async generatePrototype(
+    prdContent: string,
+    version: 'prototype' | 'alpha' | 'beta' | 'pilot',
+    isPDF: boolean = false,
+    pdfBase64?: string
+  ): Promise<string> {
+    const prompts = {
+      prototype: `You are a prototype generator. Create a simple, functional HTML prototype with inline CSS and JavaScript.
+
+INSTRUCTIONS:
+1. Return ONLY valid HTML - no markdown, no backticks
+2. Include CSS in <style> tag
+3. Include JS in <script> tags
+4. Create a basic wireframe-style prototype
+5. Use simple colors (grays, one accent color)
+6. Basic hover states and click interactions
+7. Start with <!DOCTYPE html>
+
+`,
+      alpha: `You are an expert frontend developer creating a polished Alpha Version. Create a PRODUCTION-QUALITY HTML application with inline CSS and JavaScript.
+
+REQUIREMENTS:
+1. Return ONLY valid HTML - no markdown, no backticks, no explanations
+2. Include all CSS in <style> tag
+3. Include all JS in <script> tags
+4. Start with <!DOCTYPE html>
+
+DESIGN EXCELLENCE:
+- Modern, beautiful UI with gradients, shadows, and depth
+- Smooth CSS animations and transitions (hover, focus, loading states)
+- Micro-interactions that delight users
+- Professional color palette with proper contrast
+- Custom styled form elements
+- Loading spinners and skeleton states
+- Toast notifications for actions
+- Modal dialogs where appropriate
+
+RESPONSIVE & ACCESSIBLE:
+- Fully responsive (mobile, tablet, desktop)
+- CSS Grid and Flexbox layouts
+- Proper semantic HTML
+- Focus states for keyboard navigation
+- Proper contrast ratios
+
+FUNCTIONALITY:
+- All features from PRD fully implemented
+- Form validation with helpful error messages
+- Local state management
+- Smooth page transitions
+- Empty states and error states
+- Search/filter functionality if applicable
+
+POLISH:
+- Consistent spacing and typography
+- Icon integration (use emoji or CSS shapes)
+- Professional footer and header
+- Subtle background patterns or gradients
+- Card-based layouts with hover effects
+
+Make it look like a real product, not a prototype!
+
+`,
+      beta: `You are a senior full-stack engineer creating a PRODUCTION-READY Beta Version. Create an ENTERPRISE-GRADE HTML application with inline CSS and JavaScript that simulates a complete full-stack application.
+
+CRITICAL REQUIREMENTS:
+1. Return ONLY valid HTML - no markdown, no backticks, no explanations
+2. Include all CSS in <style> tag
+3. Include all JS in <script> tags
+4. Start with <!DOCTYPE html>
+
+ARCHITECTURE & PERFORMANCE:
+- Advanced state management with event-driven architecture
+- LocalStorage for data persistence (simulate backend)
+- Virtual scrolling for large lists
+- Debouncing and throttling for performance
+- Lazy loading patterns
+- Code splitting simulation (organize JS in modules)
+- Performance metrics tracking
+
+DATA & BACKEND SIMULATION:
+- Mock API responses with realistic latency
+- CRUD operations with localStorage
+- Data validation and sanitization
+- Error handling with retry logic
+- Optimistic UI updates
+- Real-time updates simulation
+- Search and filtering with debouncing
+- Pagination and infinite scroll
+
+ADVANCED UI/UX:
+- Dark mode toggle with system preference detection
+- Skeleton screens and progressive loading
+- Drag and drop functionality
+- Advanced animations (enter/exit, list reordering)
+- Keyboard shortcuts and accessibility (ARIA)
+- Context menus and tooltips
+- Multi-step forms with progress indicators
+- Advanced data visualization (charts if applicable)
+
+ENTERPRISE FEATURES:
+- User authentication flow (login/logout simulation)
+- Role-based UI rendering
+- Session management
+- Analytics event tracking
+- Error boundaries and fallback UI
+- Offline support with service worker simulation
+- Export/import functionality (JSON, CSV)
+- Print-friendly layouts
+
+PRODUCTION POLISH:
+- Professional navigation with breadcrumbs
+- Command palette (Cmd+K style)
+- Notification system with queue
+- Settings panel
+- Help tooltips and onboarding
+- Responsive tables with sorting
+- Advanced search with filters
+- Batch operations
+
+TECHNICAL EXCELLENCE:
+- Clean, modular JavaScript with comments
+- CSS custom properties for theming
+- Mobile-first responsive design
+- Performance optimizations
+- Security best practices (XSS prevention, input sanitization)
+- SEO meta tags
+- PWA manifest simulation
+
+Make this indistinguishable from a real SaaS product!
+
+`,
+      pilot: `You are a principal engineer creating a PILOT/PRE-PRODUCTION system ready for real-world deployment. Create an ENTERPRISE-GRADE HTML application with inline CSS and JavaScript that represents a complete, monitored, and optimized production system.
+
+CRITICAL REQUIREMENTS:
+1. Return ONLY valid HTML - no markdown, no backticks, no explanations
+2. Include all CSS in <style> tag
+3. Include all JS in <script> tags
+4. Start with <!DOCTYPE html>
+
+PILOT-SPECIFIC FEATURES:
+
+A/B TESTING & EXPERIMENTATION:
+- Feature flag system with UI toggles
+- A/B test variants (show different UI versions)
+- Variant tracking and conversion metrics
+- Gradual rollout simulation (10%, 25%, 50%, 100%)
+- Test results dashboard
+
+ADVANCED ANALYTICS & MONITORING:
+- Event tracking for all user interactions
+- Performance metrics (page load, render time, interaction delay)
+- User journey tracking
+- Funnel analysis visualization
+- Real-time usage dashboard
+- Custom event creation panel
+
+ERROR TRACKING & DEBUGGING:
+- Global error boundary with stack traces
+- Error reporting UI with severity levels
+- Network request monitoring
+- Console log viewer (in-app)
+- Performance bottleneck detection
+- Error replay and reproduction steps
+
+OBSERVABILITY:
+- Health check dashboard
+- System metrics visualization
+- API response time tracking
+- Resource usage monitoring (simulated)
+- Uptime status indicator
+- Alert threshold configuration
+
+QUALITY ASSURANCE:
+- Built-in accessibility checker
+- Performance audit results
+- SEO score display
+- Security headers validation
+- Cross-browser compatibility notes
+- Mobile responsiveness tester
+
+DEPLOYMENT READINESS:
+- Environment selector (Dev/Staging/Prod simulation)
+- Configuration management panel
+- Database migration status (simulated)
+- Rollback capability
+- Canary deployment toggle
+- Blue-green deployment switch
+
+BUSINESS INTELLIGENCE:
+- User retention metrics
+- Engagement analytics
+- Revenue tracking (if applicable)
+- Cohort analysis
+- Customer feedback collector
+- NPS survey integration
+
+ADVANCED FEATURES:
+- Multi-language support with language switcher
+- Timezone handling
+- Rate limiting visualization
+- API versioning support
+- Webhook configuration panel
+- Integration testing results
+
+COMPLIANCE & SECURITY:
+- GDPR compliance tools (cookie consent, data export)
+- Security audit log viewer
+- Access control matrix
+- Two-factor authentication flow
+- Session management dashboard
+- Data encryption status indicators
+
+PRODUCTION POLISH:
+- Comprehensive admin panel
+- System configuration interface
+- User impersonation mode (for support)
+- Feature announcement system
+- Changelog viewer
+- Documentation links embedded in UI
+
+PERFORMANCE OPTIMIZATION:
+- Image lazy loading with intersection observer
+- Request caching visualization
+- CDN status indicators
+- Bundle size optimizer
+- Critical CSS extraction (simulated)
+- Service worker with offline mode
+
+DEVELOPER TOOLS:
+- In-app API explorer
+- GraphQL playground (if applicable)
+- State inspector
+- Redux DevTools simulation
+- Component tree visualizer
+- Hot reload indicator
+
+TECHNICAL EXCELLENCE:
+- Comprehensive logging system
+- Distributed tracing simulation
+- Load balancing indicator
+- Circuit breaker pattern
+- Retry logic with exponential backoff
+- Request deduplication
+- Memory leak detection
+- Performance profiling
+
+Make this production-ready with every enterprise feature needed for a real launch!
+
+`
+    };
+
+    const basePrompt = prompts[version];
+
+    let messages: any;
+    if (isPDF && pdfBase64) {
+      messages = [{
+        role: "user",
+        content: [
+          { type: "document", source: { type: "base64", media_type: "application/pdf", data: pdfBase64 }},
+          { type: "text", text: basePrompt + 'Generate from the PDF PRD above.' }
+        ]
+      }];
+    } else {
+      messages = [{ role: "user", content: basePrompt + 'PRD:\n' + prdContent }];
+    }
+
+    const data = await this.makeRequest(basePrompt + (isPDF ? 'Generate from the PDF PRD above.' : 'PRD:\n' + prdContent), [], 4000);
+    
+    let html = data.content[0].text;
+    // تنظيف الـ HTML من markdown backticks
+    if (html.includes('```html')) html = html.replace(/```html\n?/g, '').replace(/```\n?/g, '');
+    if (html.includes('```')) html = html.replace(/```\n?/g, '');
+
+    return html;
+  }
+}
+
+/**
+ * Settings Panel Component
+ * لوحة الإعدادات
+ */
+interface SettingsPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+  t: (key: string) => string;
+  onSettingsChange: () => void;
+}
+
+const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, t, onSettingsChange }) => {
+  const config = ConfigManager.getInstance();
+  const [settings, setSettings] = useState(config.getAll());
+  const [showToast, setShowToast] = useState(false);
+
+  const handleSave = () => {
+    config.updateMultiple(settings);
+    onSettingsChange();
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+    Logger.info('Settings saved', settings);
+    Analytics.track('settings_saved', settings);
+  };
+
+  const handleReset = () => {
+    config.reset();
+    setSettings(config.getAll());
+    onSettingsChange();
+    Logger.info('Settings reset');
+    Analytics.track('settings_reset');
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Settings className="text-blue-600" />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('settings')}</h2>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+            <X size={20} className="text-gray-600 dark:text-gray-400" />
+          </button>
+        </div>
+
+        {/* Settings */}
+        <div className="p-6 space-y-6">
+          {/* Dark Mode */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center gap-3">
+              {settings.darkMode ? <Moon size={20} /> : <Sun size={20} />}
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">{t('darkMode')}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Enable dark color scheme</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setSettings({ ...settings, darkMode: !settings.darkMode })}
+              className={`relative w-14 h-7 rounded-full transition-colors ${settings.darkMode ? 'bg-blue-600' : 'bg-gray-300'}`}
+            >
+              <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${settings.darkMode ? 'translate-x-7' : ''}`} />
+            </button>
+          </div>
+
+          {/* Auto Save */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Save size={20} />
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">{t('autoSave')}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Automatically save your work</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setSettings({ ...settings, autoSave: !settings.autoSave })}
+              className={`relative w-14 h-7 rounded-full transition-colors ${settings.autoSave ? 'bg-blue-600' : 'bg-gray-300'}`}
+            >
+              <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${settings.autoSave ? 'translate-x-7' : ''}`} />
+            </button>
+          </div>
+
+          {/* Cache Results */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Activity size={20} />
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">{t('cacheResults')}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Cache API responses for faster access</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setSettings({ ...settings, cacheResults: !settings.cacheResults })}
+              className={`relative w-14 h-7 rounded-full transition-colors ${settings.cacheResults ? 'bg-blue-600' : 'bg-gray-300'}`}
+            >
+              <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${settings.cacheResults ? 'translate-x-7' : ''}`} />
+            </button>
+          </div>
+
+          {/* Retry on Error */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center gap-3">
+              <RefreshCw size={20} />
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">{t('retryOnError')}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Automatically retry failed requests</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setSettings({ ...settings, retryOnError: !settings.retryOnError })}
+              className={`relative w-14 h-7 rounded-full transition-colors ${settings.retryOnError ? 'bg-blue-600' : 'bg-gray-300'}`}
+            >
+              <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${settings.retryOnError ? 'translate-x-7' : ''}`} />
+            </button>
+          </div>
+
+          {/* Max Retries */}
+          <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <label className="block mb-2 font-medium text-gray-900 dark:text-white">{t('maxRetries')}</label>
+            <input
+              type="number"
+              min="1"
+              max="5"
+              value={settings.maxRetries}
+              onChange={e => setSettings({ ...settings, maxRetries: parseInt(e.target.value) })}
+              className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Request Timeout */}
+          <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <label className="block mb-2 font-medium text-gray-900 dark:text-white">{t('requestTimeout')}</label>
+            <input
+              type="number"
+              min="10"
+              max="120"
+              value={settings.requestTimeout}
+              onChange={e => setSettings({ ...settings, requestTimeout: parseInt(e.target.value) })}
+              className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Analytics */}
+          <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">{t('analytics')}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Track usage statistics</p>
+              </div>
+              <button
+                onClick={() => setSettings({ ...settings, analytics: !settings.analytics })}
+                className={`relative w-14 h-7 rounded-full transition-colors ${settings.analytics ? 'bg-blue-600' : 'bg-gray-300'}`}
+              >
+                <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${settings.analytics ? 'translate-x-7' : ''}`} />
+              </button>
+            </div>
+            
+            {settings.analytics && (
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                {(() => {
+                  const metrics = Analytics.getMetrics();
+                  return (
+                    <>
+                      <div className="bg-white dark:bg-gray-700 p-3 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('totalRequests')}</p>
+                        <p className="text-xl font-bold text-gray-900 dark:text-white">{metrics.totalRequests}</p>
+                      </div>
+                      <div className="bg-white dark:bg-gray-700 p-3 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('successRate')}</p>
+                        <p className="text-xl font-bold text-green-600">{metrics.successRate}%</p>
+                      </div>
+                      <div className="bg-white dark:bg-gray-700 p-3 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('avgResponseTime')}</p>
+                        <p className="text-xl font-bold text-blue-600">{metrics.avgResponseTime}ms</p>
+                      </div>
+                      <div className="bg-white dark:bg-gray-700 p-3 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('cachedResponses')}</p>
+                        <p className="text-xl font-bold text-purple-600">{metrics.cachedResponses}</p>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-6 flex gap-3">
+          <button
+            onClick={handleReset}
+            className="flex-1 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
+          >
+            <RotateCcw size={18} /> {t('resetSettings')}
+          </button>
+          <button
+            onClick={handleSave}
+            className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg flex items-center justify-center gap-2"
+          >
+            <Save size={18} /> {t('saveSettings')}
+          </button>
+        </div>
+
+        {showToast && (
+          <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-xl flex items-center gap-2 animate-slide-in-right z-50">
+            <CheckCircle size={20} /> Settings saved successfully!
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Progress Indicator Component
+ * مؤشر التقدم للعمليات الطويلة
+ */
+interface ProgressIndicatorProps {
+  progress: number;
+  status: string;
+  isActive: boolean;
+}
+
+const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ progress, status, isActive }) => {
+  if (!isActive) return null;
+
+  return (
+    <div className="fixed bottom-4 right-4 bg-white dark:bg-gray-900 rounded-lg shadow-2xl p-4 w-80 z-40">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-medium text-gray-900 dark:text-white">{status}</span>
+        <span className="text-sm text-gray-500 dark:text-gray-400">{progress}%</span>
+      </div>
+      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+        <div 
+          className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all duration-500"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+/**
+ * الدالة الرئيسية للتطبيق
+ */
+const appLocale = '{{APP_LOCALE}}';
+const browserLocale = navigator.languages?.[0] || navigator.language || 'en-US';
+
+const findMatchingLocale = (locale: string): string => {
+  if ((TRANSLATIONS as any)[locale]) return locale;
+  const lang = locale.split('-')[0];
+  const match = Object.keys(TRANSLATIONS).find(key => key.startsWith(lang + '-'));
+  return match || 'en-US';
+};
+
+const locale = (appLocale !== '{{APP_LOCALE}}') 
+  ? findMatchingLocale(appLocale) 
+  : findMatchingLocale(browserLocale);
+
+const t = (key: string): string => {
+  return (TRANSLATIONS as any)[locale]?.[key] || (TRANSLATIONS as any)['en-US'][key] || key;
+};
+
+const isRTL = locale.startsWith('ar');
+
+export default function App() {
+  // State Management
+  const [activeTab, setActiveTab] = useState(0);
+  const [researchData, setResearchData] = useState({ product: '', preferences: '' });
+  const [researchReport, setResearchReport] = useState('');
+  const [isResearching, setIsResearching] = useState(false);
+  const [formData, setFormData] = useState({ question1: '', question2: '', question3: '' });
+  const [generatedPRD, setGeneratedPRD] = useState('');
+  const [isGeneratingPRD, setIsGeneratingPRD] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [prdSource, setPrdSource] = useState<{ type: string; content: string } | null>(null);
+  const [generatedHTML, setGeneratedHTML] = useState('');
+  const [isGeneratingPrototype, setIsGeneratingPrototype] = useState(false);
+  const [selectedVersion, setSelectedVersion] = useState<'prototype' | 'alpha' | 'beta' | 'pilot'>('alpha');
+  const [error, setError] = useState('');
+  const [exampleIdx, setExampleIdx] = useState(0);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(ConfigManager.getInstance().get('darkMode'));
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [progress, setProgress] = useState({ value: 0, status: '', isActive: false });
+  
+  const { toasts, showToast, hideToast } = useToast();
+
+  // Examples
+  const examples = [
+    { 
+      name: t('teamDashboard'), 
+      icon: '📊', 
+      data: { 
+        question1: 'A real-time team collaboration dashboard', 
+        question2: 'Remote team leads needing visibility into project status', 
+        question3: 'Live updates, calendar, automated assignments. Success: 30% fewer meetings' 
+      }
+    },
+    { 
+      name: t('shoppingApp'), 
+      icon: '🛍️', 
+      data: { 
+        question1: 'Mobile shopping app with AI recommendations', 
+        question2: 'Busy professionals wanting efficient shopping', 
+        question3: 'AI style tips, one-tap checkout, AR try-on. Success: 40% higher order value' 
+      }
+    },
+    { 
+      name: t('fitnessTracker'), 
+      icon: '💪', 
+      data: { 
+        question1: 'Fitness app with workouts and nutrition', 
+        question2: 'Fitness enthusiasts wanting all-in-one solution', 
+        question3: 'Workout builder, meal tracking, challenges. Success: 70% retention' 
+      }
+    }
+  ];
+
+  // Auto-save effect
+  useEffect(() => {
+    const config = ConfigManager.getInstance();
+    if (config.get('autoSave')) {
+      const data = {
+        researchData,
+        researchReport,
+        formData,
+        generatedPRD,
+        generatedHTML,
+        selectedVersion,
+        activeTab
+      };
+      localStorage.setItem('prd_prototype_autosave', JSON.stringify(data));
+      Logger.debug('Auto-saved application state');
+    }
+  }, [researchData, researchReport, formData, generatedPRD, generatedHTML, selectedVersion, activeTab]);
+
+  // Load auto-saved data on mount
+  useEffect(() => {
+    const config = ConfigManager.getInstance();
+    if (config.get('autoSave')) {
+      try {
+        const saved = localStorage.getItem('prd_prototype_autosave');
+        if (saved) {
+          const data = JSON.parse(saved);
+          setResearchData(data.researchData || { product: '', preferences: '' });
+          setResearchReport(data.researchReport || '');
+          setFormData(data.formData || { question1: '', question2: '', question3: '' });
+          setGeneratedPRD(data.generatedPRD || '');
+          setGeneratedHTML(data.generatedHTML || '');
+          setSelectedVersion(data.selectedVersion || 'alpha');
+          setActiveTab(data.activeTab || 0);
+          showToast('Previous session restored', 'info');
+          Logger.info('Auto-save data restored');
+        }
+      } catch (error) {
+        Logger.error('Failed to restore auto-save data', error);
+      }
+    }
+  }, []);
+
+  // Dark mode effect
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + S: Save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        // Auto-save is already handled
+        showToast(t('saveSettings'), 'success');
+      }
+      
+      // Ctrl/Cmd + K: Clear cache
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        RequestCache.clear();
+        showToast(t('cacheCleared'), 'success');
+      }
+
+      // Ctrl/Cmd + D: Toggle dark mode
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        const config = ConfigManager.getInstance();
+        const newMode = !config.get('darkMode');
+        config.set('darkMode', newMode);
+        setDarkMode(newMode);
+        showToast(`Dark mode ${newMode ? 'enabled' : 'disabled'}`, 'info');
+      }
+
+      // F11: Toggle fullscreen
+      if (e.key === 'F11') {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [darkMode]);
+
+  /**
+   * تبديل وضع ملء الشاشة
+   */
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  /**
+   * تحديد مثال
+   */
+  const handleExampleClick = () => {
+    const next = (exampleIdx + 1) % examples.length;
+    setExampleIdx(next);
+    setFormData(examples[next].data);
+    Analytics.track('example_clicked', { example: examples[next].name });
+  };
+
+  /**
+   * بدء البحث
+   */
+  const startResearch = async () => {
+    setIsResearching(true);
+    setError('');
+    setResearchReport('');
+    setProgress({ value: 0, status: t('researching'), isActive: true });
+    
+    Analytics.track('research_started', { product: researchData.product });
+    
+    try {
+      // تحديث progress بشكل تدريجي
+      const progressInterval = setInterval(() => {
+        setProgress(prev => ({
+          ...prev,
+          value: Math.min(prev.value + Math.random() * 10, 90)
+        }));
+      }, 500);
+
+      const report = await APIClient.research(researchData.product, researchData.preferences);
+      
+      clearInterval(progressInterval);
+      setProgress({ value: 100, status: t('researchComplete'), isActive: true });
+      
+      setTimeout(() => {
+        setProgress({ value: 0, status: '', isActive: false });
+      }, 2000);
+
+      setResearchReport(report);
+      showToast(t('researchComplete'), 'success');
+      Analytics.track('research_completed', { product: researchData.product });
+      
+    } catch (err: any) {
+      setError(t('errorMessage'));
+      showToast(t('errorMessage'), 'error');
+      setProgress({ value: 0, status: '', isActive: false });
+      Analytics.track('research_failed', { error: err.message });
+    }
+    
+    setIsResearching(false);
+  };
+
+  /**
+   * استخدام البحث لإنشاء PRD
+   */
+  const useResearchForPRD = () => {
+    setFormData({
+      question1: researchData.product,
+      question2: `Target users based on market research with preferences: ${researchData.preferences}`,
+      question3: 'Key features and success metrics based on competitive analysis and user preferences'
+    });
+    setActiveTab(1);
+    showToast('Research data transferred to PRD', 'info');
+    Analytics.track('research_to_prd');
+  };
+
+  /**
+   * إنشاء PRD
+   */
+  const generatePRD = async () => {
+    setIsGeneratingPRD(true);
+    setError('');
+    setGeneratedPRD('');
+    setProgress({ value: 0, status: t('generatingPRD'), isActive: true });
+    
+    Analytics.track('prd_generation_started');
+
+    try {
+      const progressInterval = setInterval(() => {
+        setProgress(prev => ({
+          ...prev,
+          value: Math.min(prev.value + Math.random() * 15, 90)
+        }));
+      }, 300);
+
+      const prd = await APIClient.generatePRD(
+        formData.question1,
+        formData.question2,
+        formData.question3,
+        researchReport
+      );
+
+      clearInterval(progressInterval);
+      setProgress({ value: 100, status: 'PRD Generated!', isActive: true });
+      
+      setTimeout(() => {
+        setProgress({ value: 0, status: '', isActive: false });
+      }, 2000);
+
+      setGeneratedPRD(prd);
+      showToast('PRD generated successfully!', 'success');
+      Analytics.track('prd_generation_completed');
+
+    } catch (err: any) {
+      setError(t('errorMessage'));
+      showToast(t('errorMessage'), 'error');
+      setProgress({ value: 0, status: '', isActive: false });
+      Analytics.track('prd_generation_failed', { error: err.message });
+    }
+    
+    setIsGeneratingPRD(false);
+  };
+
+  /**
+   * معالجة رفع ملف
+   */
+  const handleFileDrop = async (e: React.DragEvent<HTMLDivElement> | React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const file = 'dataTransfer' in e ? e.dataTransfer?.files[0] : e.target?.files?.[0];
+    if (!file) return;
+
+    const ext = file.name.toLowerCase().split('.').pop();
+    if (!['pdf', 'md', 'txt'].includes(ext || '')) {
+      setError(t('invalidFileType'));
+      showToast(t('invalidFileType'), 'error');
+      return;
+    }
+
+    setUploadedFile(file);
+    setError('');
+    
+    Analytics.track('file_uploaded', { type: ext });
+
+    if (ext !== 'pdf') {
+      const text = await file.text();
+      setPrdSource({ type: 'text', content: text });
+      showToast(`File uploaded: ${file.name}`, 'success');
+    } else {
+      const base64 = await new Promise<string>((res) => {
+        const reader = new FileReader();
+        reader.onload = () => res((reader.result as string).split(',')[1]);
+        reader.readAsDataURL(file);
+      });
+      setPrdSource({ type: 'pdf', content: base64 });
+      showToast(`PDF uploaded: ${file.name}`, 'success');
+    }
+  };
+
+  /**
+   * استخدام PRD المُنشأ
+   */
+  const useGeneratedPRD = () => {
+    if (generatedPRD) {
+      setPrdSource({ type: 'text', content: generatedPRD });
+      setUploadedFile(null);
+      showToast('Using generated PRD', 'info');
+      Analytics.track('generated_prd_used');
+    }
+  };
+
+  /**
+   * إنشاء Prototype
+   */
+  const generatePrototype = async () => {
+    if (!prdSource) {
+      setError(t('noPRDAvailable'));
+      showToast(t('noPRDAvailable'), 'error');
+      return;
+    }
+
+    setIsGeneratingPrototype(true);
+    setError('');
+    setProgress({ value: 0, status: `${t('generatingPrototype')} (${selectedVersion})`, isActive: true });
+    
+    Analytics.track('prototype_generation_started', { version: selectedVersion });
+
+    try {
+      const progressInterval = setInterval(() => {
+        setProgress(prev => ({
+          ...prev,
+          value: Math.min(prev.value + Math.random() * 8, 90)
+        }));
+      }, 800);
+
+      const html = await APIClient.generatePrototype(
+        prdSource.content,
+        selectedVersion,
+        prdSource.type === 'pdf',
+        prdSource.type === 'pdf' ? prdSource.content : undefined
+      );
+
+      clearInterval(progressInterval);
+      setProgress({ value: 100, status: t('prototypeReady'), isActive: true });
+      
+      setTimeout(() => {
+        setProgress({ value: 0, status: '', isActive: false });
+      }, 2000);
+
+      setGeneratedHTML(html);
+      showToast(t('prototypeReady'), 'success');
+      Analytics.track('prototype_generation_completed', { version: selectedVersion });
+
+    } catch (err: any) {
+      setError(t('errorMessage'));
+      showToast(t('errorMessage'), 'error');
+      setProgress({ value: 0, status: '', isActive: false });
+      Analytics.track('prototype_generation_failed', { error: err.message, version: selectedVersion });
+    }
+    
+    setIsGeneratingPrototype(false);
+  };
+
+  /**
+   * تحميل HTML
+   */
+  const downloadHTML = () => {
+    const blob = new Blob([generatedHTML], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `prototype-${selectedVersion}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(t('downloadSuccess'), 'success');
+    Analytics.track('prototype_downloaded', { version: selectedVersion });
+  };
+
+  /**
+   * نسخ إلى الحافظة
+   */
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(t('copied'), 'success');
+      Analytics.track('text_copied');
+    } catch (err) {
+      showToast('Failed to copy', 'error');
+    }
+  };
+
+  /**
+   * تحويل Markdown إلى HTML
+   */
+  const renderMarkdown = (text: string): string => {
+    return text
+      .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold mt-4 mb-2">$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold mt-8 mb-4">$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/^\* (.+)$/gm, '<li class="ml-4">• $1</li>')
+      .replace(/^\- (.+)$/gm, '<li class="ml-4">• $1</li>')
+      .replace(/\n\n/g, '</p><p class="mb-3">')
+      .replace(/^(?!<[hl]|<li)(.+)$/gm, '<p class="mb-3">$1</p>');
+  };
+
+  /**
+   * الحصول على إعدادات النسخة
+   */
+  const getVersionConfig = () => {
+    const configs = {
+      prototype: { 
+        color: 'blue', 
+        icon: '📝', 
+        label: t('prototypeOption'),
+        gradient: 'from-blue-500 to-cyan-500'
+      },
+      alpha: { 
+        color: 'purple', 
+        icon: '🚀', 
+        label: t('alphaOption'),
+        gradient: 'from-purple-600 to-pink-600'
+      },
+      beta: { 
+        color: 'emerald', 
+        icon: '⚡', 
+        label: t('betaOption'),
+        gradient: 'from-emerald-600 to-teal-600'
+      },
+      pilot: {
+        color: 'orange',
+        icon: '🎯',
+        label: t('pilotOption'),
+        gradient: 'from-orange-600 to-red-600'
+      }
+    };
+    return configs[selectedVersion];
+  };
+
+  return (
+    <ErrorBoundary t={t}>
+      <div className={`min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-purple-900 dark:to-indigo-900 ${isRTL ? 'rtl' : 'ltr'} transition-colors duration-300`} dir={isRTL ? 'rtl' : 'ltr'}>
+        {/* خلفية متحركة */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-10 left-10 w-72 h-72 bg-blue-300 dark:bg-blue-900 rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-pulse"></div>
+          <div className="absolute top-0 right-20 w-72 h-72 bg-purple-300 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-pulse" style={{animationDelay: '1s'}}></div>
+          <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-pink-300 dark:bg-pink-900 rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-pulse" style={{animationDelay: '2s'}}></div>
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto p-6">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex-1"></div>
+              <div className="flex-1 text-center">
+                <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">{t('pageTitle')}</h1>
+                <p className="text-gray-600 dark:text-gray-300">{t('pageSubtitle')}</p>
+              </div>
+              <div className="flex-1 flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    const config = ConfigManager.getInstance();
+                    const newMode = !config.get('darkMode');
+                    config.set('darkMode', newMode);
+                    setDarkMode(newMode);
+                  }}
+                  className="p-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-full hover:shadow-lg transition-all"
+                  title={darkMode ? 'Light Mode' : 'Dark Mode'}
+                >
+                  {darkMode ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-indigo-600" />}
+                </button>
+                <button
+                  onClick={toggleFullscreen}
+                  className="p-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-full hover:shadow-lg transition-all"
+                  title={isFullscreen ? t('exitFullscreen') : t('fullscreen')}
+                >
+                  {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                </button>
+                <button
+                  onClick={() => {
+                    RequestCache.clear();
+                    showToast(t('cacheCleared'), 'success');
+                  }}
+                  className="p-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-full hover:shadow-lg transition-all"
+                  title={t('clearCache')}
+                >
+                  <RefreshCw size={20} />
+                </button>
+                <button
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="p-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-full hover:shadow-lg transition-all"
+                  title={t('settings')}
+                >
+                  <Settings size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-full p-1 shadow-lg flex gap-1">
+              <button 
+                onClick={() => setActiveTab(0)} 
+                className={`px-6 py-3 rounded-full font-medium transition-all flex items-center gap-2 ${
+                  activeTab === 0 
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md' 
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                <Search size={18} /> {t('tab1')}
+              </button>
+              <button 
+                onClick={() => setActiveTab(1)} 
+                className={`px-6 py-3 rounded-full font-medium transition-all flex items-center gap-2 ${
+                  activeTab === 1 
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md' 
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                <FileText size={18} /> {t('tab2')}
+              </button>
+              <button 
+                onClick={() => setActiveTab(2)} 
+                className={`px-6 py-3 rounded-full font-medium transition-all flex items-center gap-2 ${
+                  activeTab === 2 
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md' 
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                <Code size={18} /> {t('tab3')}
+              </button>
+            </div>
+          </div>
+
+          {/* Tab 0: Product Research */}
+          {activeTab === 0 && (
+            <div className="flex gap-6 h-[calc(100vh-280px)]">
+              {/* Left: Research Form */}
+              <div className="w-1/2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-2xl shadow-xl p-6 overflow-y-auto">
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Target className="text-blue-600 dark:text-blue-400" size={24} />
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('researchTitle')}</h2>
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">{t('researchSubtitle')}</p>
+                </div>
+                
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('productLabel')}</label>
+                    <textarea 
+                      value={researchData.product} 
+                      onChange={e => setResearchData(p => ({...p, product: e.target.value}))} 
+                      className="w-full px-4 py-3 bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900 dark:text-white" 
+                      rows={2} 
+                      placeholder={t('productPlaceholder')} 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('preferencesLabel')}</label>
+                    <textarea 
+                      value={researchData.preferences} 
+                      onChange={e => setResearchData(p => ({...p, preferences: e.target.value}))} 
+                      className="w-full px-4 py-3 bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900 dark:text-white" 
+                      rows={4} 
+                      placeholder={t('preferencesPlaceholder')} 
+                    />
+                  </div>
+
+                  <button 
+                    onClick={startResearch} 
+                    disabled={isResearching || !researchData.product} 
+                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+                  >
+                    {isResearching ? (
+                      <><Loader2 className="animate-spin" size={18}/> {t('researching')}</>
+                    ) : (
+                      <><TrendingUp size={18}/> {t('startResearch')}</>
+                    )}
+                  </button>
+
+                  {researchReport && (
+                    <button 
+                      onClick={useResearchForPRD} 
+                      className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium hover:shadow-lg flex items-center justify-center gap-2"
+                    >
+                      {t('useToPRD')} <ArrowRight size={18}/>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: Research Report */}
+              <div className="w-1/2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg rounded-2xl shadow-xl flex flex-col overflow-hidden">
+                {researchReport && (
+                  <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
+                    <span className="font-medium text-green-600 dark:text-green-400 flex items-center gap-2">
+                      <TrendingUp size={18}/> {t('researchComplete')}
+                    </span>
+                    <div className="flex gap-2">
+                      <button onClick={() => copyToClipboard(researchReport)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" title={t('copyTooltip')}>
+                        <Copy size={18}/>
+                      </button>
+                      <button onClick={() => {
+                        const b = new Blob([researchReport], {type:'text/markdown'});
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(b);
+                        a.download = 'research-report.md';
+                        a.click();
+                        showToast(t('downloadSuccess'), 'success');
+                      }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" title={t('downloadTooltip')}>
+                        <Download size={18}/>
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <div className="flex-1 overflow-y-auto p-6">
+                  {researchReport ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{__html: renderMarkdown(researchReport)}} />
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-600">
+                      <Search size={48} className="mb-3 opacity-50"/>
+                      <p className="text-center">Your market research report will appear here</p>
+                      <p className="text-sm mt-2">Enter product details and start researching</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 1: Create PRD */}
+          {activeTab === 1 && (
+            <div className="flex gap-6 h-[calc(100vh-280px)]">
+              {/* Left: Form */}
+              <div className="w-1/2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-2xl shadow-xl p-6 overflow-y-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('threeQuestions')}</h2>
+                  <button onClick={handleExampleClick} className="px-3 py-1.5 bg-white/60 dark:bg-gray-800/60 hover:bg-white dark:hover:bg-gray-700 rounded-full text-sm flex items-center gap-1 border border-gray-200 dark:border-gray-700">
+                    <span>{examples[exampleIdx].icon}</span> {t('tryExample')} {examples[exampleIdx].name}
+                  </button>
+                </div>
+                
+                <div className="space-y-5">
+                  {[1, 2, 3].map(n => (
+                    <div key={n}>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t(`question${n}Label`)}</label>
+                      <textarea 
+                        value={(formData as any)[`question${n}`]} 
+                        onChange={e => setFormData(p => ({...p, [`question${n}`]: e.target.value}))} 
+                        className="w-full px-4 py-3 bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900 dark:text-white" 
+                        rows={3} 
+                        placeholder={t(`question${n}Placeholder`)} 
+                      />
+                    </div>
+                  ))}
+
+                  <button 
+                    onClick={generatePRD} 
+                    disabled={isGeneratingPRD || !formData.question1 || !formData.question2 || !formData.question3} 
+                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+                  >
+                    {isGeneratingPRD ? <><Loader2 className="animate-spin" size={18}/> {t('generatingPRD')}</> : t('generatePRD')}
+                  </button>
+
+                  {generatedPRD && (
+                    <button 
+                      onClick={() => { useGeneratedPRD(); setActiveTab(2); }} 
+                      className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium hover:shadow-lg flex items-center justify-center gap-2"
+                    >
+                      {t('convertToPrototype')} <ArrowRight size={18}/>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: Preview */}
+              <div className="w-1/2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg rounded-2xl shadow-xl flex flex-col overflow-hidden">
+                {generatedPRD && (
+                  <div className="flex items-center justify-end gap-2 p-4 border-b border-gray-100 dark:border-gray-800">
+                    <button onClick={() => copyToClipboard(generatedPRD)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" title={t('copyTooltip')}>
+                      <Copy size={18}/>
+                    </button>
+                    <button onClick={() => {
+                      const b = new Blob([generatedPRD], {type:'text/markdown'});
+                      const a = document.createElement('a');
+                      a.href = URL.createObjectURL(b);
+                      a.download = 'prd.md';
+                      a.click();
+                      showToast(t('downloadSuccess'), 'success');
+                    }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" title={t('downloadTooltip')}>
+                      <Download size={18}/>
+                    </button>
+                  </div>
+                )}
+                <div className="flex-1 overflow-y-auto p-6">
+                  {generatedPRD ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{__html: renderMarkdown(generatedPRD)}} />
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-600">
+                      <FileText size={48} className="mb-3 opacity-50"/>
+                      <p>{t('emptyStateText')}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 2: Generate Prototype */}
+          {activeTab === 2 && !generatedHTML && (
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-2xl shadow-xl p-8" 
+                   onDragOver={e => e.preventDefault()} 
+                   onDrop={handleFileDrop}>
+                <h2 className="text-xl font-semibold mb-6 text-center text-gray-900 dark:text-white">{t('uploadTitle')}</h2>
+                
+                {/* Upload Area */}
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-8 text-center hover:border-blue-400 dark:hover:border-blue-600 transition-colors cursor-pointer mb-6" 
+                     onClick={() => document.getElementById('fileInput')?.click()}>
+                  <Upload size={40} className="mx-auto mb-3 text-gray-400 dark:text-gray-600"/>
+                  <p className="text-gray-600 dark:text-gray-400 mb-2">{t('uploadInstructions')}</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-600">{t('supportedFormats')}</p>
+                  <input type="file" id="fileInput" className="hidden" accept=".pdf,.md,.txt" onChange={handleFileDrop}/>
+                </div>
+
+                {uploadedFile && (
+                  <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/30 p-3 rounded-lg mb-4">
+                    <span className="text-green-700 dark:text-green-400">{t('selectedFile')} {uploadedFile.name}</span>
+                    <button onClick={() => { setUploadedFile(null); setPrdSource(null); }} className="text-gray-500 hover:text-red-500">
+                      <X size={18}/>
+                    </button>
+                  </div>
+                )}
+
+                {generatedPRD && !uploadedFile && (
+                  <div className="text-center mb-6">
+                    <p className="text-gray-500 dark:text-gray-400 mb-3">{t('orUseGenerated')}</p>
+                    <button 
+                      onClick={useGeneratedPRD} 
+                      className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                        prdSource?.type === 'text' && prdSource?.content === generatedPRD 
+                          ? 'bg-green-500 text-white' 
+                          : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      {t('useGeneratedPRD')}
+                    </button>
+                  </div>
+                )}
+
+                {/* Version Selection */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 text-center">{t('selectVersion')}</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Prototype Option */}
+                    <button 
+                      onClick={() => setSelectedVersion('prototype')} 
+                      className={`p-4 rounded-xl border-2 transition-all text-center ${
+                        selectedVersion === 'prototype' 
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 shadow-md' 
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
+                      }`}
+                    >
+                      <div className="text-3xl mb-2">📝</div>
+                      <div className="font-semibold text-sm text-gray-900 dark:text-white mb-1">{t('prototypeOption')}</div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight">{t('prototypeDesc')}</p>
+                    </button>
+                    
+                    {/* Alpha Version Option */}
+                    <button 
+                      onClick={() => setSelectedVersion('alpha')} 
+                      className={`p-4 rounded-xl border-2 transition-all text-center relative ${
+                        selectedVersion === 'alpha' 
+                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 shadow-md' 
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
+                      }`}
+                    >
+                      <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium rounded-full flex items-center gap-1">
+                        <Sparkles size={10}/> {t('recommended')}
+                      </div>
+                      <div className="text-3xl mb-2">🚀</div>
+                      <div className="font-semibold text-sm text-gray-900 dark:text-white mb-1">{t('alphaOption')}</div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight">{t('alphaDesc')}</p>
+                    </button>
+
+                    {/* Beta Version Option */}
+                    <button 
+                      onClick={() => setSelectedVersion('beta')} 
+                      className={`p-4 rounded-xl border-2 transition-all text-center relative ${
+                        selectedVersion === 'beta' 
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 shadow-md' 
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
+                      }`}
+                    >
+                      <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-medium rounded-full flex items-center gap-1">
+                        <Zap size={10}/> {t('mostAdvanced')}
+                      </div>
+                      <div className="text-3xl mb-2">⚡</div>
+                      <div className="font-semibold text-sm text-gray-900 dark:text-white mb-1">{t('betaOption')}</div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight">{t('betaDesc')}</p>
+                    </button>
+
+                    {/* Pilot/Pre-production Option */}
+                    <button 
+                      onClick={() => setSelectedVersion('pilot')} 
+                      className={`p-4 rounded-xl border-2 transition-all text-center relative ${
+                        selectedVersion === 'pilot' 
+                          ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/30 shadow-md' 
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
+                      }`}
+                    >
+                      <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-gradient-to-r from-orange-600 to-red-600 text-white text-xs font-medium rounded-full flex items-center gap-1">
+                        🎯 {t('readyForLaunch')}
+                      </div>
+                      <div className="text-3xl mb-2">🎯</div>
+                      <div className="font-semibold text-sm text-gray-900 dark:text-white mb-1">{t('pilotOption')}</div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight">{t('pilotDesc')}</p>
+                    </button>
+                  </div>
+                </div>
+
+                {error && <p className="text-red-500 dark:text-red-400 text-center mb-4">{error}</p>}
+
+                <button 
+                  onClick={generatePrototype} 
+                  disabled={!prdSource || isGeneratingPrototype} 
+                  className={`w-full py-4 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all bg-gradient-to-r ${getVersionConfig().gradient}`}
+                >
+                  {isGeneratingPrototype ? (
+                    <><Loader2 className="animate-spin" size={20}/> {t('generatingPrototype')}</>
+                  ) : (
+                    <><span className="text-xl">{getVersionConfig().icon}</span> {getVersionConfig().label} - {t('generatePrototype')}</>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Prototype Preview */}
+          {activeTab === 2 && generatedHTML && (
+            <div className="h-[calc(100vh-280px)]">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden h-full flex flex-col">
+                <div className="flex items-center justify-between p-4 border-b bg-gray-50 dark:bg-gray-800">
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setGeneratedHTML('')} className="flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                      <ChevronLeft size={18}/> {t('backToEditor')}
+                    </button>
+                    <span className={`font-medium flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r ${getVersionConfig().gradient} text-white`}>
+                      <span className="text-lg">{getVersionConfig().icon}</span>
+                      {getVersionConfig().label} - {t('prototypeReady')}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={downloadHTML} className="px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 flex items-center gap-2">
+                      <Download size={16}/> {t('downloadHTML')}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <iframe srcDoc={generatedHTML} className="w-full h-full border-0" sandbox="allow-scripts allow-forms"/>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Toast Notifications */}
+        {toasts.map(toast => (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            onClose={() => hideToast(toast.id)}
+          />
+        ))}
+
+        {/* Progress Indicator */}
+        <ProgressIndicator
+          progress={progress.value}
+          status={progress.status}
+          isActive={progress.isActive}
+        />
+
+        {/* Settings Panel */}
+        <SettingsPanel
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          t={t}
+          onSettingsChange={() => {
+            setDarkMode(ConfigManager.getInstance().get('darkMode'));
+          }}
+        />
+
+        {/* CSS Animations */}
+        <style>{`
+          @keyframes slide-in-right {
+            from {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateX(0);
+              opacity: 1;
+            }
+          }
+          .animate-slide-in-right {
+            animation: slide-in-right 0.3s ease-out;
+          }
+        `}</style>
+      </div>
+    </ErrorBoundary>
+  );
+}
