@@ -8,7 +8,6 @@ import { GoogleGenAI } from '@google/genai';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import swaggerSpec from './swagger.config.js';
-import logger from './logger.js';
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
@@ -467,9 +466,4 @@ app.get('/api/research/stream', async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
- *             example:
- *               ok: false
- *               code: "BAD_REQUEST"
- *               message: "prompt is required"
- *               status: 400
- *       500
+ *
