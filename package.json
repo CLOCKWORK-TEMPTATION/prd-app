@@ -1,30 +1,56 @@
 {
-  "name": "prd-app-section19",
+  "name": "prd-app",
   "version": "1.0.0",
-  "description": "Section 19: Compare Versions Feature for PRD to Prototype Application",
+  "description": "PRD to Prototype Application - Full Implementation",
   "main": "src/index.ts",
   "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
     "test": "echo \"Tests would go here\"",
-    "build": "echo \"Build would go here\"",
-    "dev": "echo \"Dev server would go here\""
+    "lint": "eslint src --ext ts,tsx"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "lucide-react": "^0.294.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.45.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.0.2",
+    "vite": "^5.0.0"
   },
   "keywords": [
     "prd",
     "version-comparison",
     "diff-viewer",
     "ab-testing",
-    "product-management"
+    "product-management",
+    "ai-assistant",
+    "auto-save",
+    "progress-manager",
+    "challenges",
+    "streak",
+    "gamification",
+    "engagement",
+    "react",
+    "typescript"
   ],
   "author": "Product Team",
   "license": "MIT",
   "peerDependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
-    "lucide-react": "^0.263.0"
-  },
-  "devDependencies": {
-    "@types/react": "^18.0.0",
-    "@types/react-dom": "^18.0.0",
-    "typescript": "^5.0.0"
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
   }
 }
