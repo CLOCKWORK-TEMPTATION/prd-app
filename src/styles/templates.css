@@ -1,0 +1,297 @@
+/**
+ * Templates Library Styles
+ * Section 2: Smart Templates Library
+ */
+
+/* Modal Animations */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Template Card Styles */
+.template-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.template-card:hover {
+  transform: translateY(-4px);
+}
+
+.template-card.selected {
+  animation: pulse 0.5s ease-in-out;
+}
+
+/* Category Badges */
+.category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+}
+
+.category-badge.saas {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: rgb(59, 130, 246);
+}
+
+.category-badge.mobile {
+  background-color: rgba(168, 85, 247, 0.1);
+  color: rgb(168, 85, 247);
+}
+
+.category-badge.ecommerce {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: rgb(34, 197, 94);
+}
+
+/* Difficulty Badges */
+.difficulty-beginner {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: rgb(34, 197, 94);
+}
+
+.difficulty-intermediate {
+  background-color: rgba(234, 179, 8, 0.1);
+  color: rgb(234, 179, 8);
+}
+
+.difficulty-advanced {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: rgb(239, 68, 68);
+}
+
+/* Search Input */
+.template-search {
+  transition: all 0.3s ease;
+}
+
+.template-search:focus {
+  transform: scale(1.02);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Details Panel */
+.template-details {
+  animation: slideInRight 0.3s ease-out;
+  max-height: calc(90vh - 200px);
+  overflow-y: auto;
+}
+
+[dir="rtl"] .template-details {
+  animation: slideInLeft 0.3s ease-out;
+}
+
+/* Scrollbar Styling */
+.template-details::-webkit-scrollbar {
+  width: 8px;
+}
+
+.template-details::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.template-details::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.template-details::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Dark Mode */
+.dark .template-details::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark .template-details::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark .template-details::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Filter Buttons */
+.filter-button {
+  transition: all 0.2s ease;
+}
+
+.filter-button:hover {
+  transform: scale(1.05);
+}
+
+.filter-button.active {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Template Icons */
+.template-icon {
+  font-size: 3rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  transition: transform 0.3s ease;
+}
+
+.template-card:hover .template-icon {
+  transform: scale(1.1);
+}
+
+/* Stats Display */
+.template-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.dark .template-stats {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Popularity Meter */
+.popularity-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.popularity-bar {
+  width: 40px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.popularity-fill {
+  height: 100%;
+  background: linear-gradient(to right, #22c55e, #10b981);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Responsive Grid */
+@media (max-width: 1024px) {
+  .templates-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .templates-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .template-details {
+    max-height: 60vh;
+  }
+}
+
+/* Loading States */
+.template-loading {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Empty State */
+.template-empty {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Tip Items */
+.tip-item {
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.tip-item::before {
+  content: "💡";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+[dir="rtl"] .tip-item {
+  padding-left: 0;
+  padding-right: 1.5rem;
+}
+
+[dir="rtl"] .tip-item::before {
+  left: auto;
+  right: 0;
+}
+
+/* Use Template Button */
+.use-template-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.use-template-button::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.use-template-button:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Accessibility */
+.template-card:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.8);
+  outline-offset: 2px;
+}
+
+/* Print Styles */
+@media print {
+  .template-modal {
+    position: static;
+    max-width: 100%;
+  }
+
+  .template-details {
+    max-height: none;
+  }
+}

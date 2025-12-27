@@ -1,0 +1,121 @@
+/**
+ * Onboarding Tour Styles
+ * Section 1: Interactive Onboarding Tour
+ */
+
+/* Animations */
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes pulse-highlight {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.7), 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* Onboarding Highlight */
+.onboarding-highlight {
+  position: relative;
+  z-index: 9997;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  animation: pulse-highlight 2s ease-in-out infinite;
+  transition: all 0.3s ease;
+}
+
+/* Tooltip Positioning */
+.onboarding-tooltip {
+  position: fixed;
+  z-index: 9999;
+  animation: slideInUp 0.3s ease-out;
+  pointer-events: auto;
+}
+
+.onboarding-tooltip.top {
+  animation: slideInDown 0.3s ease-out;
+}
+
+/* Progress Indicator */
+.onboarding-progress {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Step Indicators */
+.step-indicator {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.step-indicator.active {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* RTL Support */
+[dir="rtl"] .onboarding-tooltip {
+  text-align: right;
+}
+
+/* Dark Mode Support */
+.dark .onboarding-highlight {
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.6), 0 0 0 9999px rgba(0, 0, 0, 0.7);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 640px) {
+  .onboarding-tooltip {
+    max-width: 90vw;
+    left: 5vw !important;
+    right: 5vw !important;
+  }
+}
+
+/* Accessibility */
+.onboarding-tooltip:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.8);
+  outline-offset: 2px;
+}
+
+/* Backdrop Blur Effect */
+.onboarding-backdrop {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
