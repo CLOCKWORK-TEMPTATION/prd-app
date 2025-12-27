@@ -1,3 +1,60 @@
+# PRD App: Research & Prototype Integration
+
+This app connects Gemini Deep Research and multiple models to power product research, PRD generation, and prototype creation.
+
+## Quick Start
+
+1. Install dependencies
+
+```bash
+npm install
+```
+
+2. Configure environment
+
+```bash
+copy .env.example .env
+# Edit .env and add provider keys if available
+```
+
+3. Start the backend (port 4000)
+
+```bash
+npm run server
+```
+
+4. Start the frontend (Vite on 5175)
+
+```bash
+npm run dev
+```
+
+The dev proxy forwards `/api` to `http://localhost:4000`.
+
+## Environment Variables
+
+- `APP_ALLOWED_ORIGINS`: Allowed origins for CORS (e.g., `http://localhost:5175`)
+- `PORT`: Backend port (default `4000`)
+- `GOOGLE_API_KEY`: Google Gemini API key (optional)
+- `ANTHROPIC_API_KEY`: Anthropic API key (optional)
+- `OPENAI_API_KEY`: OpenAI API key (optional)
+
+If keys are missing, the backend returns stubbed results so the app works offline.
+
+## Model Mapping
+
+- Product Research (tab 1): Gemini Deep Research Agent via Interactions API
+- PRD Generation (tab 2): `models/gemini-2.5-pro`
+- Prototype (tab 3): `models/gemini-3-flash-preview`
+- Alpha: `models/gemini-3-pro-preview`
+- Beta: Anthropic `claude-sonnet-4-5`
+- Pilot: OpenAI `gpt-5.2` (fallbacks to `gpt-5`, `gpt-4.1`, `o3-pro`)
+
+## Notes
+
+- Deep Research uses background tasks and polling. Streaming can be added via SSE.
+- Keys are kept server-side only.
+- Error responses are normalized; the UI shows toasts and progress.
 # PRD to Prototype Application - Full Implementation
 
 Complete implementation of all sections from the PRD to Prototype roadmap.
