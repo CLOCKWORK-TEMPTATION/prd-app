@@ -196,4 +196,71 @@ We need to leverage our synergy to create a paradigm shift and then circle back.
     });
 
   });
+
+  // Tests from Main Branch (preserved during merge)
+  describe('Weight Validation', () => {
+    it('should have correct weights summing to 1.0', () => {
+      const result = scoringService.evaluatePRD('test');
+
+      expect(result.dimensions.clarity.weight).toBe(0.25);
+      expect(result.dimensions.completeness.weight).toBe(0.25);
+      expect(result.dimensions.specificity.weight).toBe(0.2);
+      expect(result.dimensions.measurability.weight).toBe(0.15);
+      expect(result.dimensions.feasibility.weight).toBe(0.15);
+    });
+
+    it('should include non-empty feedback for all dimensions', () => {
+      const result = scoringService.evaluatePRD('Test content here');
+
+      expect(result.dimensions.clarity.feedback).toBeTruthy();
+      expect(result.dimensions.completeness.feedback).toBeTruthy();
+      expect(result.dimensions.specificity.feedback).toBeTruthy();
+      expect(result.dimensions.measurability.feedback).toBeTruthy();
+      expect(result.dimensions.feasibility.feedback).toBeTruthy();
+    });
+  });
+
+  describe('Feedback Messages (Existing Tests)', () => {
+    it('should return excellent feedback for high clarity scores', () => {
+      const excellentClarity = `# Great Title
+
+## Section One
+Content here.
+
+## Section Two
+More content.
+
+## Section Three
+Even more content.
+
+## Section Four
+Final section with good content length.`;
+
+      const result = scoringService.evaluatePRD(excellentClarity);
+
+      if (result.dimensions.clarity.score >= 80) {
+        expect(result.dimensions.clarity.feedback).toContain('Excellent');
+      }
+    });
+
+    it('should return improvement feedback for medium clarity scores', () => {
+      const mediumClarity = '## Some Content\n\nParagraph one.\n\nParagraph two.';
+
+      const result = scoringService.evaluatePRD(mediumClarity);
+
+      if (result.dimensions.clarity.score >= 60 && result.dimensions.clarity.score < 80) {
+        expect(result.dimensions.clarity.feedback).toContain('Good');
+      }
+    });
+
+    it('should return needs improvement feedback for low clarity scores', () => {
+      const lowClarity = 'bad';
+
+      const result = scoringService.evaluatePRD(lowClarity);
+
+      if (result.dimensions.clarity.score < 60) {
+        expect(result.dimensions.clarity.feedback).toContain('Needs improvement');
+      }
+    });
+  });
 });
