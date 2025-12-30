@@ -8,7 +8,10 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
-    "test": "echo \"Tests would go here\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
     "lint": "eslint src --ext ts,tsx",
     "server": "node ./server/index.js"
   },
@@ -24,6 +27,8 @@
     "openai": "^6.15.0",
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "winston": "^3.19.0",
     "zod": "^4.2.1"
   },
